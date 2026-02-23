@@ -1,0 +1,6 @@
+# Create virtual environment
+python -m venv .doctor_venv
+source .doctor_venv/bin/activate  # On Windows: .doctor_venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt

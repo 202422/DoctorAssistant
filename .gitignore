@@ -1,0 +1,122 @@
+# ============================================================
+# VIRTUAL ENVIRONMENTS
+# ============================================================
+.venv/
+.doctor_venv/
+venv/
+env/
+ENV/
+.env.local
+
+# ============================================================
+# PYTHON
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================================
+# IDE / EDITORS
+# ============================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================
+# ENVIRONMENT FILES
+# ============================================================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ============================================================
+# LOGS
+# ============================================================
+*.log
+logs/
+log/
+
+# ============================================================
+# OS FILES
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# JUPYTER NOTEBOOKS
+# ============================================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ============================================================
+# TESTING
+# ============================================================
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ============================================================
+# MYPY / TYPE CHECKING
+# ============================================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================================
+# PROJECT SPECIFIC
+# ============================================================
+# Graph visualizations (can be regenerated)
+*.png
+!assets/*.png
+
+# FAISS indexes (can be regenerated)
+*.faiss
+*.pkl
+faiss_index/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Data files (if large)
+data/*.csv
+data/*.json
+!data/sample_*.json
