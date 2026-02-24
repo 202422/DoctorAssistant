@@ -1,2 +1,10 @@
 # DoctorAssistant
-Doctor Assistant is a multi-agent medical system built with LangGraph. It uses a Planner-Supervisor architecture to coordinate 4 specialist agents: PatientDataRetriever (Neon MCP), CardiovascularDiagnosis (RAG), NeurologicalDiagnosis (RAG), and PharmacyFinder (Google Maps MCP + Python) for comprehensive medical consultation support.
+
+
+Doctor Assistant is a **Multi-Agent System (MAS)** built with **LangGraph/LangChain** that provides
+AI-powered medical symptom analysis and preliminary diagnosis. It orchestrates multiple specialized agents working together to analyze patient symptoms, retrieve medical history, and generate
+comprehensive medical assessments.
+
+
+
+![](src\doctor_assistant\Whole_graph.png)
