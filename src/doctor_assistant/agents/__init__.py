@@ -1,6 +1,6 @@
 """Agents module."""
 
-from .cardiovascular import run_cardiovascular_agent, create_cardiovascular_graph
+from .cardiovascular import run_cardiovascular_agent
 from .neurological import run_neurological_agent, create_neurological_graph
 from .patient_data import run_patient_data_agent
 from .planner import run_planner_agent, print_plan
