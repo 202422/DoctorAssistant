@@ -98,25 +98,3 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# ============================================================
-# PROJECT SPECIFIC
-# ============================================================
-# Graph visualizations (can be regenerated)
-*.png
-!assets/*.png
-
-# FAISS indexes (can be regenerated)
-*.faiss
-*.pkl
-faiss_index/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# Data files (if large)
-data/*.csv
-data/*.json
-!data/sample_*.json
