@@ -145,13 +145,6 @@ class PatientDataAgentState(TypedDict, total=False):
     query: str
     patient_id: int | None
     patient_name: str | None
-    action: Literal["search_by_id", "search_by_name", "get_history", "get_medications", "get_allergies", "final_answer"]
-    action_input: str
-    observation: str
-    thought: str
-    react_history: Annotated[list[ReActStep], add]
-    iteration: int
-    max_iterations: int
     patient_info: PatientInfo | None
     is_complete: bool
     error: str | None
