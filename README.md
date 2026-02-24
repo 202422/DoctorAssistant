@@ -7,4 +7,4 @@ comprehensive medical assessments.
 
 
 
-![](src\doctor_assistant\Whole_graph.png)
+![](src/doctor_assistant/Whole_graph.png)
