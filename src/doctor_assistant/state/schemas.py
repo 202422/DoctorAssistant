@@ -1,7 +1,49 @@
 """State schemas for the Doctor Assistant graph."""
 
-from typing import TypedDict, Literal, Annotated
+from typing import List, Literal, Annotated, Optional
 from operator import add
+
+from pydantic.v1 import BaseModel
+from pypika import Field
+
+
+from typing_extensions import TypedDict
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages
+
+# Helper types (you can also put these in a separate types.py file)
+class PatientDataOutput(TypedDict):
+    patient_id: str
+    name: str
+    age: Optional[int]
+    gender: Optional[str]
+    medical_history: List[str]
+    current_medications: List[str]
+    allergies: List[str]
+    location: Optional[str]
+
+class SpecialistAssessment(TypedDict):
+    agent: Literal["cardiovascular", "neurological"]
+    possible_conditions: List[str]
+    evidence: List[str]
+    suggested_drugs: List[Dict[str, str]]  # name, purpose, dosage, notes
+    recommendations: List[str]
+    warning_signs: List[str]
+    confidence: Literal["high", "medium", "low"]
+    sources_consulted: int
+    raw_response: str
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]           # keeps full conversation history
+
+    # Structured outputs — overwritten by each agent when it finishes
+    patient_profile: Optional[PatientDataOutput]                  # latest from patient_data agent
+    cardio_assessment: Optional[SpecialistAssessment]             # latest from cardiovascular
+    neuro_assessment: Optional[SpecialistAssessment]              # latest from neurological
+
+    # Optional: track which agents have already run at least once
+    completed_agents: Annotated[List[Literal["patient_data", "cardiovascular", "neurological"]], "add"] = []
+
 
 
 class PatientInfo(TypedDict, total=False):
@@ -49,12 +91,16 @@ class ReActStep(TypedDict):
 # PLAN STEP
 # ============================================================
 
-class PlanStep(TypedDict):
-    """A single step in the execution plan."""
-    step: int
-    agent: Literal["patient_data", "cardiovascular", "neurological", "pharmacy_finder"]
-    reason: str
-    required: bool
+class PlanStep(BaseModel):
+    step_number: int
+    agent: Literal["patient_data", "cardiovascular", "neurological", "synthesis"]
+    task: str = Field(..., description="Exact task this agent should perform")
+    purpose: str = Field(..., description="Why this step is important")
+
+class MedicalPlan(BaseModel):
+    analysis: str = Field(..., description="Deep analysis of the user's request")
+    steps: List[PlanStep]
+    final_note: str = Field(..., description="Any special instructions or caveats")
 
 
 # ============================================================
@@ -108,6 +154,7 @@ class SupervisorState(TypedDict, total=False):
 # ============================================================
 # MAIN GRAPH STATE
 # ============================================================
+
 
 class MainGraphState(TypedDict, total=False):
     """State for the main Doctor Assistant graph."""
