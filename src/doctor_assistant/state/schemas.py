@@ -2,9 +2,7 @@
 
 from typing import List, Literal, Annotated, Optional
 from operator import add
-
-from pydantic.v1 import BaseModel
-from pypika import Field
+from pydantic import Field, BaseModel
 
 
 from typing_extensions import TypedDict
@@ -22,11 +20,19 @@ class PatientDataOutput(TypedDict):
     allergies: List[str]
     location: Optional[str]
 
+
+class SuggestedDrug(TypedDict):
+    """Suggested drug with details."""
+    name: str
+    purpose: str
+    dosage: str
+    notes: str
+
 class SpecialistAssessment(TypedDict):
     agent: Literal["cardiovascular", "neurological"]
     possible_conditions: List[str]
     evidence: List[str]
-    suggested_drugs: List[Dict[str, str]]  # name, purpose, dosage, notes
+    suggested_drugs: List[SuggestedDrug]  # name, purpose, dosage, notes
     recommendations: List[str]
     warning_signs: List[str]
     confidence: Literal["high", "medium", "low"]
@@ -50,12 +56,7 @@ class PatientInfo(TypedDict, total=False):
     location: str
 
 
-class SuggestedDrug(TypedDict):
-    """Suggested drug with details."""
-    name: str
-    purpose: str
-    dosage: str
-    notes: str
+
 
 
 class DiagnosisResult(TypedDict):
@@ -85,9 +86,9 @@ class ReActStep(TypedDict):
 
 class PlanStep(BaseModel):
     step_number: int
-    agent: Literal["patient_data", "cardiovascular", "neurological", "synthesis"]
-    task: str = Field(..., description="Exact task this agent should perform")
-    purpose: str = Field(..., description="Why this step is important")
+    agent: Literal["patient_data_agent", "cardiovascular_agent", "neurological_agent", "synthesis_agent"]
+    task: Annotated[str, Field(description="Exact task this agent should perform")]
+    purpose: Annotated[str, Field(description="Why this step is important")]
 
 class MedicalPlan(BaseModel):
     analysis: str = Field(..., description="Deep analysis of the user's request")

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, Literal
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
-from ..state.schemas import State, MedicalPlan, PlanStep  # your shared state file
+from ..state import State, MedicalPlan, PlanStep  # your shared state file
 from ..prompts import PLANNER_SYSTEM_PROMPT
 from ..config import get_llm
 
@@ -12,7 +12,7 @@ llm = get_llm(temperature=0)  # deterministic output for planning
 
 
 # ====================== PLANNER NODE ======================
-def planner_node(state: State):
+def planner_agent(state: State):
     """Analyzes the request and outputs a clear, human-readable plan"""
     
 

@@ -123,4 +123,5 @@ pypdf
 langchain_huggingface
 sentence-transformers
 
-pip install langchain-huggingface==0.1.0 sentence-transformers
+
+nest_asyncio

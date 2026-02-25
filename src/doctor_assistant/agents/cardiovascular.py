@@ -1,4 +1,4 @@
-from state import State
+from ..state import State
 from langgraph.prebuilt import create_react_agent
 from ..config import get_llm
 from ..knowledge_bases.cardiovascular_kb import get_retriever

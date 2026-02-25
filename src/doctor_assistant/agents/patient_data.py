@@ -7,7 +7,7 @@ from langchain_core.messages import ToolMessage
 from ..prompts import PATIENT_DATA_THINK_PROMPT   # ← UPDATE THIS PROMPT (see below)
 from ..config import get_llm
 from ..mcp.neon_tools import neon_tools
-from state import State                     # ← your shared state.py
+from ..state import State                     # ← your shared state.py
 
 
 # ============================================================================
@@ -35,7 +35,7 @@ llm = get_llm(temperature=0)
 checkpointer = MemorySaver()
 
 patient_data_agent = create_react_agent(
-    llm=llm,
+    model=llm,
     tools=neon_tools,
     prompt=PATIENT_DATA_THINK_PROMPT,
     checkpointer=checkpointer,
