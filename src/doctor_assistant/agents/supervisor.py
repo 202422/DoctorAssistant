@@ -1,8 +1,6 @@
-
 from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_openai import ChatOpenAI
-from langgraph.types import Command
 from ..state import State
 from ..config import get_llm
 
@@ -12,7 +10,7 @@ class Route(BaseModel):
     next: Literal["patient_data_agent", "cardiovascular_agent", "neurological_agent", "synthesis_agent"]
     reason: str = Field(..., description="Short explanation of why this agent next")
 
-def supervisor_agent(state: State) -> Command:
+def supervisor_agent(state: State) -> dict:  # Changed return type
     """Central router that follows the planner's plan"""
     
     system_prompt = """
@@ -27,14 +25,14 @@ Your ONLY job is to:
 
 Rules you MUST follow strictly:
 
-• The planner has already created a clear sequence of steps with assigned agents.
+- The planner has already created a clear sequence of steps with assigned agents.
   Look at the most recent message containing "**Step-by-Step Plan**" — that is your guide.
-• Only call an agent if its step has not yet been completed or if the plan explicitly says to call it multiple times.
-• If the last message is from "synthesis_agent" (or contains a final report), DO NOT call any more agents — route to END.
-• If all agents listed in the plan have already responded at least once (or as many times as required), go directly to "synthesis_agent".
-• Do NOT call the same agent again unless the plan specifically requires multiple calls from that agent.
-• Do NOT invent new steps or agents — stick to the planner's plan.
-• When in doubt whether the plan is complete → prefer to go to "synthesis_agent" rather than looping.
+- Only call an agent if its step has not yet been completed or if the plan explicitly says to call it multiple times.
+- If the last message is from "synthesis_agent" (or contains a final report), DO NOT call any more agents — route to END.
+- If all agents listed in the plan have already responded at least once (or as many times as required), go directly to "synthesis_agent".
+- Do NOT call the same agent again unless the plan specifically requires multiple calls from that agent.
+- Do NOT invent new steps or agents — stick to the planner's plan.
+- When in doubt whether the plan is complete → prefer to go to "synthesis_agent" rather than looping.
 
 Available agents (use these exact names):
 - "patient_data_agent"   – retrieves patient records and history
@@ -56,10 +54,9 @@ Always respond with valid JSON matching this schema:
         *state["messages"]
     ])
 
-    if state.get("workflow_complete"):
-        print("✅ Workflow complete. Ending.")
-        return Command(goto=END)
-
-    print(f"🔀 Supervisor → {decision.next} | Reason: {decision.reason}")  # helpful debug
-
-    return Command(goto=decision.next)
+    print(f"🔀 Supervisor → {decision.next} | Reason: {decision.reason}")
+    
+    # Return the route as a string (for conditional_edges)
+    return {"next": decision.next,
+            "agents_called": state.get("agents_called", []) + ["supervisor_agent"]}  # Pass through agents_called without modification
+            

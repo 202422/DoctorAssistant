@@ -33,5 +33,7 @@ def planner_agent(state: State):
         plan_text += f"   Purpose: {step.purpose}\n\n"
     
     plan_text += f"**Final Note**\n{plan.final_note}"
+    print(plan_text)
 
-    return {"messages": [AIMessage(content=plan_text)]}
+    return {"messages": [AIMessage(content=plan_text)],
+            "agents_called": state.get("agents_called", []) + ["planner_agent"]}

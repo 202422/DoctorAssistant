@@ -38,7 +38,7 @@ class Settings:
 
     # Smithery MCP
     SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", "")
-    SMITHERY_MCP_URL: str = "https://api.smithery.ai/connect/ptarmigan-7O0V/neon-qd1p/mcp"
+    SMITHERY_MCP_URL: str = os.getenv("SMITHERY_MCP_URL", "https://api.smithery.ai/connect/test_syntax/neon-CHOJ/mcp")
     
     # Neon Database
     NEON_PROJECT_ID: str = os.getenv("NEON_PROJECT_ID", "")

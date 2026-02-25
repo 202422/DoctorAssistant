@@ -41,7 +41,8 @@ class SpecialistAssessment(TypedDict):
 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]           # keeps full conversation history
-
+    next: str  # needed for supervisor routing
+    agents_called: list[str]  # Add this to track which agents ran
 
 
 class PatientInfo(TypedDict, total=False):

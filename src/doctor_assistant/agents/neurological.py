@@ -101,7 +101,8 @@ def run_neurological_agent(state: State):
     )
 
     # Return only the last message (standard LangGraph node pattern)
-    return {"messages": [result["messages"][-1]]}
+    return {"messages": [result["messages"][-1]],
+            "agents_called": state.get("agents_called", []) + ["neurological_agent"]}
 
 # -------------------------------------------------
 # Example usage

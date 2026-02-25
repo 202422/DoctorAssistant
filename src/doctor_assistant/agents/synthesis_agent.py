@@ -16,5 +16,5 @@ def synthesis_agent(state: State):
 
     return {
     "messages": [AIMessage(content=response.content, name="synthesis_agent")],
-    "workflow_complete": True   # new state key
+    "agents_called": state.get("agents_called", []) + ["synthesis_agent"]
 }

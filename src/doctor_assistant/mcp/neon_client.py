@@ -34,12 +34,12 @@ class NeonMCPClient:
 
         self.logger = logging.getLogger(__name__)
 
-        # Persistent synchronous HTTP client — no async, no event loop conflicts
+        # Persistent synchronous HTTP client
         self._client = httpx.Client(
             timeout=httpx.Timeout(
                 connect=15.0,
-                read=60.0,
-                write=30.0,   # was 10s — too short for parallel SQL payloads
+                read=90.0,    # Increased from 60 to 90 seconds
+                write=30.0,
                 pool=15.0
             ),
             limits=httpx.Limits(
@@ -72,45 +72,71 @@ class NeonMCPClient:
         return response_text
 
     # -----------------------------
-    # MCP TOOL CALL (sync)
+    # MCP TOOL CALL (sync) - WITH RETRY
     # -----------------------------
 
-    def call_tool(self, tool_name: str, arguments: dict):
-        self.logger.info(f"🔧 Calling MCP tool: {tool_name}")
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": str(time.time()),
-            "method": "tools/call",
-            "params": {"name": tool_name, "arguments": arguments},
-        }
-
-        response = self._client.post(
-            self.base_url,
-            headers=self.headers,
-            json=payload
-        )
-
-        self.logger.debug(f"STATUS: {response.status_code}")
-        self.logger.debug(f"RAW RESPONSE: {response.text[:1000]}")
-
-        if response.status_code != 200:
-            raise Exception(f"MCP call failed: {response.status_code} - {response.text}")
-
-        result = self.parse_sse_json(response.text)
-
-        if isinstance(result, dict) and "error" in result:
-            raise Exception(result["error"])
-
-        inner = result.get("result", {})
-        content = inner.get("content", [])
-        if content and isinstance(content[0], dict) and content[0].get("type") == "text":
-            text = content[0]["text"]
+    def call_tool(self, tool_name: str, arguments: dict, max_retries: int = 2):
+        """Call MCP tool with retry logic for timeout errors."""
+        last_error = None
+        
+        for attempt in range(max_retries):
             try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                return text
-        return inner
+                self.logger.info(f"🔧 Calling MCP tool: {tool_name} (attempt {attempt + 1}/{max_retries})")
+
+                payload = {
+                    "jsonrpc": "2.0",
+                    "id": str(time.time()),
+                    "method": "tools/call",
+                    "params": {"name": tool_name, "arguments": arguments},
+                }
+
+                response = self._client.post(
+                    self.base_url,
+                    headers=self.headers,
+                    json=payload
+                )
+
+                self.logger.debug(f"STATUS: {response.status_code}")
+                self.logger.debug(f"RAW RESPONSE: {response.text[:1000]}")
+
+                if response.status_code != 200:
+                    raise Exception(f"MCP call failed: {response.status_code} - {response.text}")
+
+                result = self.parse_sse_json(response.text)
+
+                if isinstance(result, dict) and "error" in result:
+                    raise Exception(result["error"])
+
+                inner = result.get("result", {})
+                content = inner.get("content", [])
+                if content and isinstance(content[0], dict) and content[0].get("type") == "text":
+                    text = content[0]["text"]
+                    try:
+                        return json.loads(text)
+                    except json.JSONDecodeError:
+                        return text
+                return inner
+                
+            except httpx.ReadTimeout as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s
+                    self.logger.warning(f"⚠️ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    self.logger.error(f"❌ All {max_retries} attempts failed for {tool_name}")
+                    # Return empty result instead of crashing
+                    return []
+            except Exception as e:
+                self.logger.error(f"❌ Error calling {tool_name}: {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                else:
+                    raise
+        
+        # If we get here, all retries failed
+        self.logger.error(f"❌ Failed after {max_retries} attempts: {last_error}")
+        return []
 
     # -----------------------------
     # LIST TOOLS (sync)
@@ -126,25 +152,25 @@ class NeonMCPClient:
             "params": {},
         }
 
-        response = self._client.post(
-            self.base_url,
-            headers=self.headers,
-            json=payload
-        )
-
-        if response.status_code != 200:
-            self.logger.error(f"❌ Failed to list tools: {response.status_code}")
-            return []
-
         try:
-            result = self.parse_sse_json(response.text)
-        except Exception:
-            self.logger.error("❌ Failed to parse SSE response")
-            return []
+            response = self._client.post(
+                self.base_url,
+                headers=self.headers,
+                json=payload
+            )
 
-        tools = result.get("result", {}).get("tools", [])
-        self.logger.info(f"✅ Found {len(tools)} tools")
-        return tools
+            if response.status_code != 200:
+                self.logger.error(f"❌ Failed to list tools: {response.status_code}")
+                return []
+
+            result = self.parse_sse_json(response.text)
+            tools = result.get("result", {}).get("tools", [])
+            self.logger.info(f"✅ Found {len(tools)} tools")
+            return tools
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to list tools: {e}")
+            return []
 
     # ============================================================
     # SQL EXECUTION (sync)
@@ -161,9 +187,13 @@ class NeonMCPClient:
         if self.branch_id:
             arguments["branchId"] = self.branch_id
 
-        result = self.call_tool("run_sql", arguments)
-        logger.info("✅ Query executed successfully")
-        return result if isinstance(result, list) else []
+        try:
+            result = self.call_tool("run_sql", arguments)
+            logger.info("✅ Query executed successfully")
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.error(f"❌ SQL execution failed: {e}")
+            return []
 
     def run_sql_transaction(self, queries: list[str]) -> list[dict]:
         logger.info(f"🔄 Executing transaction with {len(queries)} queries...")
@@ -176,9 +206,13 @@ class NeonMCPClient:
         if self.branch_id:
             arguments["branchId"] = self.branch_id
 
-        result = self.call_tool("run_sql_transaction", arguments)
-        logger.info("✅ Transaction completed successfully")
-        return result
+        try:
+            result = self.call_tool("run_sql_transaction", arguments)
+            logger.info("✅ Transaction completed successfully")
+            return result
+        except Exception as e:
+            logger.error(f"❌ Transaction failed: {e}")
+            return []
 
     # ============================================================
     # DATABASE INTROSPECTION (sync)

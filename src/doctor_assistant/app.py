@@ -14,7 +14,7 @@ if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
 import gradio as gr
-from doctor_assistant.graph import run_doctor_assistant, create_main_graph
+from doctor_assistant.graph import run_doctor_assistant, graph, print_response
 from doctor_assistant.config import setup_langsmith
 LANGSMITH_ENABLED = setup_langsmith()
 
@@ -25,7 +25,6 @@ MAX_HISTORY_INTERACTIONS = 3
 def save_graph():
     """Save the agent graph and return the path."""
     try:
-        graph = create_main_graph()
         png_bytes = graph.get_graph().draw_mermaid_png()
         graph_path = os.path.join(SRC_DIR, "doctor_assistant_graph.png")
         with open(graph_path, "wb") as f:
@@ -48,52 +47,11 @@ def format_response(result: dict) -> str:
     
     parts = []
     
-    # Urgency Banner
-    urgency = result.get('urgency', 'medium').upper()
-    if urgency == "HIGH":
-        parts.append("🚨 **HIGH URGENCY** - Immediate medical attention recommended!\n")
-    elif urgency == "MEDIUM":
-        parts.append("⚠️ **MEDIUM URGENCY** - Medical consultation recommended soon.\n")
-    else:
-        parts.append("✅ **LOW URGENCY** - Monitor symptoms and consult if they persist.\n")
-    
-    # Patient Info
-    patient = result.get('patient_info')
-    if patient:
-        parts.append(f"""
----
-### 👤 Patient Information
-- **Name:** {patient.get('name', 'N/A')}
-- **Age:** {patient.get('age', 'N/A')}
-- **Gender:** {patient.get('gender', 'N/A')}
-- **Location:** {patient.get('location', 'N/A')}
-- **Medical History:** {', '.join(patient.get('medical_history', [])) or 'None'}
-- **Medications:** {', '.join(patient.get('current_medications', [])) or 'None'}
-- **Allergies:** {', '.join(patient.get('allergies', [])) or 'None'}
-""")
-    elif result.get('patient_name'):
-        parts.append(f"\n---\n### 👤 Patient: {result.get('patient_name')} (Not found in database)\n")
-    
-    # Agents Consulted
-    plan = result.get('plan_executed', [])
-    if plan:
-        agent_icons = {
-            'patient_data': '👤 Patient Data',
-            'cardiovascular': '🫀 Cardiovascular',
-            'neurological': '🧠 Neurological'
-        }
-        agents_str = ' → '.join([agent_icons.get(a, a) for a in plan])
-        parts.append(f"\n**🔬 Agents Consulted:** {agents_str}\n")
-    
-    # Final Response
-    final_response = result.get('final_response', '')
-    if final_response:
-        parts.append(f"""
----
-### 📋 Assessment
-
-{final_response}
-""")
+    # Extract the final message from the graph result
+    if result.get('messages'):
+        final_message = result['messages'][-1].content if hasattr(result['messages'][-1], 'content') else str(result['messages'][-1])
+        parts.append("### 📋 Medical Assessment\n")
+        parts.append(final_message)
     
     # Disclaimer
     parts.append("""
@@ -129,7 +87,10 @@ def respond(message: str, chat_history: list) -> tuple:
         result = run_doctor_assistant(message)
         
         # Format the response
-        formatted_response = format_response(result)
+        if isinstance(result, dict) and result.get('messages'):
+            formatted_response = format_response(result)
+        else:
+            formatted_response = str(result)
         
     except Exception as e:
         formatted_response = f"❌ **Error:** {str(e)}\n\nPlease try again or rephrase your query."
