@@ -6,7 +6,7 @@ from .diagnosis_prompts import (
 )
 
 from .synthesis_prompts import (
-    SYNTHESIS_SYSTEM_PROMPT)
+    SYNTHESIS_PROMPT)
 
 from .patient_prompts import (
     PATIENT_DATA_THINK_PROMPT,
@@ -24,7 +24,7 @@ from .supervisor_prompts import (
     SUPERVISOR_VALIDATION_PROMPT,
 )
 
-__all__ = ["SYNTHESIS_SYSTEM_PROMPT",
+__all__ = ["SYNTHESIS_PROMPT",
     "CARDIOVASCULAR_PROMPT",
     "NEUROLOGICAL_PROMPT",
     "NEUROLOGICAL_FINAL_PROMPT",

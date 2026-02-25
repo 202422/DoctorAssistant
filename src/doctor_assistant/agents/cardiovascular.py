@@ -1,3 +1,4 @@
+from state import State
 from langgraph.prebuilt import create_react_agent
 from ..config import get_llm
 from ..knowledge_bases.cardiovascular_kb import get_retriever
@@ -55,7 +56,7 @@ agent = create_react_agent(
 # -------------------------------------------------
 # Step 3: Run function for a patient query
 # -------------------------------------------------
-def run_cardiovascular_agent(query: str, patient_info: dict | None = None):
+def run_cardiovascular_node(query: str, patient_info: dict | None = None):
     """
     Executes the Cardiovascular RAG agent for a patient.
     """
@@ -81,6 +82,25 @@ def run_cardiovascular_agent(query: str, patient_info: dict | None = None):
     # Extract the final structured response
     return result["messages"][-1].content
 
+
+def run_cardiovascular_agent(state: State):
+    """
+    This is the node you will import into your main graph.py
+    It receives the FULL conversation history (planner + plan + previous agents)
+    """
+    # Pass the entire messages list so the agent can see:
+    # - Query Analysis
+    # - Step-by-Step Plan
+    # - Its own assigned task
+    result = agent.invoke(
+        {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
+        config={"configurable": {"thread_id": "cardiovascular_thread"}}
+    )
+
+    # Return only the last message (standard LangGraph node pattern)
+    return {"messages": [result["messages"][-1]]}
+
+
 # -------------------------------------------------
 # Example usage
 # -------------------------------------------------
@@ -96,5 +116,5 @@ if __name__ == "__main__":
 "allergies": ["None"],
 "location": "Clinique Ghandi"
 }
-    diagnosis = run_cardiovascular_agent(test_query, patient_info)
+    diagnosis = run_cardiovascular_node(test_query, patient_info)
     print(diagnosis)

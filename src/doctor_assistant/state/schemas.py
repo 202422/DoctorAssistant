@@ -36,14 +36,6 @@ class SpecialistAssessment(TypedDict):
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]           # keeps full conversation history
 
-    # Structured outputs — overwritten by each agent when it finishes
-    patient_profile: Optional[PatientDataOutput]                  # latest from patient_data agent
-    cardio_assessment: Optional[SpecialistAssessment]             # latest from cardiovascular
-    neuro_assessment: Optional[SpecialistAssessment]              # latest from neurological
-
-    # Optional: track which agents have already run at least once
-    completed_agents: Annotated[List[Literal["patient_data", "cardiovascular", "neurological"]], "add"] = []
-
 
 
 class PatientInfo(TypedDict, total=False):

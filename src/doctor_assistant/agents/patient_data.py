@@ -1,15 +1,17 @@
+# patient_data_agent.py
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.agents.middleware import wrap_tool_call
-from langchain.messages import ToolMessage
+from langchain_core.messages import ToolMessage
 
-from ..prompts import PATIENT_DATA_THINK_PROMPT
+from ..prompts import PATIENT_DATA_THINK_PROMPT   # ← UPDATE THIS PROMPT (see below)
 from ..config import get_llm
 from ..mcp.neon_tools import neon_tools
+from state import State                     # ← your shared state.py
 
 
 # ============================================================================
-# ERROR HANDLING MIDDLEWARE
+# ERROR HANDLING MIDDLEWARE (kept exactly as you had it)
 # ============================================================================
 
 @wrap_tool_call
@@ -25,34 +27,49 @@ def handle_tool_errors(request, handler):
 
 
 # ============================================================================
-# AGENT SETUP
+# AGENT SETUP (ReAct agent stays exactly the same)
 # ============================================================================
 
 llm = get_llm(temperature=0)
 
-# Initialize memory for conversation persistence
 checkpointer = MemorySaver()
 
-# Create ReAct agent with LangGraph
-agent = create_react_agent(
-    llm,
-    neon_tools,
+patient_data_agent = create_react_agent(
+    llm=llm,
+    tools=neon_tools,
     prompt=PATIENT_DATA_THINK_PROMPT,
-    checkpointer=checkpointer 
+    checkpointer=checkpointer,
 )
 
 
+# ============================================================================
+# NEW: LANGGRAPH NODE THAT USES THE FULL STATE
+# ============================================================================
+
+def run_patient_data_agent(state: State):
+    """
+    This is the node you will import into your main graph.py
+    It receives the FULL conversation history (planner + plan + previous agents)
+    """
+    # Pass the entire messages list so the agent can see:
+    # - Query Analysis
+    # - Step-by-Step Plan
+    # - Its own assigned task
+    result = patient_data_agent.invoke(
+        {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
+        config={"configurable": {"thread_id": "patient_data_thread"}}
+    )
+
+    # Return only the last message (standard LangGraph node pattern)
+    return {"messages": [result["messages"][-1]]}
+
 
 # ============================================================================
-# QUERY EXECUTION
+# Optional: Keep your old standalone runner for testing
 # ============================================================================
 
-def run_patient_data_agent(query: str, patient_id: int | None = None, patient_name: str | None = None):
-    """
-    Executes the medical ReAct agent.
-    """
-    
-    # Build the user message with patient context
+def patient_data_node(query: str, patient_id: int | None = None, patient_name: str | None = None):
+    """Keep this for quick standalone testing if you want"""
     user_message = f"""## User Query:
 {query}
 
@@ -60,34 +77,29 @@ def run_patient_data_agent(query: str, patient_id: int | None = None, patient_na
 - Patient ID: {patient_id}
 - Patient Name: {patient_name}
 """
-    
-    # Configure thread for conversation persistence
-    thread_id = f"patient-{patient_id}" if patient_id else f"patient-{hash(patient_name)}"
+
+    thread_id = f"patient-{patient_id}" if patient_id else f"patient-{hash(patient_name or '')}"
     config = {"configurable": {"thread_id": thread_id}}
-    
-    # Invoke the agent
-    result = agent.invoke(
+
+    result = patient_data_agent.invoke(
         {"messages": [{"role": "user", "content": user_message}]},
         config=config
     )
-    
-    # Extract the final response
     return result["messages"][-1].content
 
 
 # ============================================================================
-# MAIN
+# Save graph visualization (kept your original)
 # ============================================================================
 
 if __name__ == "__main__":
-    # Save agent graph visualization
-    graph_image = agent.get_graph().draw_mermaid_png()
+    graph_image = patient_data_agent.get_graph().draw_mermaid_png()
     with open("patient_data_agent_graph.png", "wb") as f:
         f.write(graph_image)
     print("Graph saved as patient_data_agent_graph.png")
 
-    # Run the agent
-    response = run_patient_data_agent(
+    # Example standalone test
+    response = patient_data_node(
         query="Retrieve full clinical profile",
         patient_name="Youssef Kabbaj"
     )

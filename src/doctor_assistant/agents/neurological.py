@@ -1,4 +1,7 @@
+from gradio import State
 from langgraph.prebuilt import create_react_agent
+
+from state import State
 from ..config import get_llm
 from ..knowledge_bases.neurological_kb import get_retriever
 from langgraph.checkpoint.memory import MemorySaver
@@ -33,8 +36,8 @@ retriever = get_retriever(k=4)         # Vectorstore retriever
 retriever = get_retriever(k=4)
 
 @tool
-def cardio_search(query: str) -> str:
-    """Search the cardiovascular medical knowledge base."""
+def neurological_search(query: str) -> str:
+    """Search the neurological medical knowledge base."""
     docs = retriever.invoke(query)
     return "\n\n".join(doc.page_content for doc in docs)
 
@@ -46,7 +49,7 @@ memory_saver = MemorySaver()
 # -------------------------------------------------
 agent = create_react_agent(
     llm,
-    tools=[cardio_search],
+    tools=[neurological_search],
     checkpointer=memory_saver,
     prompt=NEUROLOGICAL_PROMPT
 )
@@ -55,7 +58,7 @@ agent = create_react_agent(
 # -------------------------------------------------
 # Step 3: Run function for a patient query
 # -------------------------------------------------
-def run_neurological_agent(query: str, patient_info: dict | None = None):
+def run_neurological_node(query: str, patient_info: dict | None = None):
     """
     Executes the neurological RAG agent for a patient.
     """
@@ -80,6 +83,25 @@ def run_neurological_agent(query: str, patient_info: dict | None = None):
 
     # Extract the final structured response
     return result["messages"][-1].content
+
+
+
+def run_neurological_agent(state: State):
+    """
+    This is the node you will import into your main graph.py
+    It receives the FULL conversation history (planner + plan + previous agents)
+    """
+    # Pass the entire messages list so the agent can see:
+    # - Query Analysis
+    # - Step-by-Step Plan
+    # - Its own assigned task
+    result = agent.invoke(
+        {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
+        config={"configurable": {"thread_id": "neurological_thread"}}
+    )
+
+    # Return only the last message (standard LangGraph node pattern)
+    return {"messages": [result["messages"][-1]]}
 
 # -------------------------------------------------
 # Example usage

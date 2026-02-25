@@ -3,8 +3,9 @@ from typing import Literal
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
 from state import State
+from ..config import get_llm
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = get_llm(temperature=0)
 
 class Route(BaseModel):
     next: Literal["patient_data", "cardiovascular", "neurological", "synthesis"]
