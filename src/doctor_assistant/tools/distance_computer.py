@@ -9,19 +9,7 @@ def street_distance_osrm(
     lat2: float,
     profile: Literal["driving", "walking", "cycling"],
 ) -> float:
-    """
-    Compute street network distance between two points using OSRM.
-
-    Parameters:
-        lon1 (float): Origin longitude
-        lat1 (float): Origin latitude
-        lon2 (float): Destination longitude
-        lat2 (float): Destination latitude
-        profile (str): Routing profile ("driving", "walking", "cycling")
-
-    Returns:
-        float: Distance in kilometers
-    """
+    
 
     url: str = (
         f"http://router.project-osrm.org/route/v1/"

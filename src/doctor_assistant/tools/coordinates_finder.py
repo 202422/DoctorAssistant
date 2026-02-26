@@ -1,6 +1,7 @@
 import requests
 import time
 from typing import List, Dict, Optional, Tuple, Union
+from langchain_core.tools import Tool
 
 # ====================== SINGLE LOCATION (unchanged) ======================
 def get_coordinates(
@@ -92,3 +93,4 @@ if __name__ == "__main__":
     
     for r in results:
         print(f"{r['place']}, {r['city']}, {r['country']} → {r['lat']}, {r['lon']}")
+
