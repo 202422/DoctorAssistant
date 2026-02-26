@@ -1,6 +1,10 @@
 """Main entry point for Doctor Assistant."""
 
 from .graph import run_doctor_assistant, print_response
+from .config import setup_langsmith
+
+# configure LangSmith (will respect environment variables)
+_LANGSMITH_ENABLED = setup_langsmith()
 
 
 def main():

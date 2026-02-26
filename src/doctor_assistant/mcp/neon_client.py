@@ -17,11 +17,17 @@ logger = get_logger(__name__)
 # ============================================================
 
 class NeonMCPClient:
-    """Synchronous client for Neon PostgreSQL via Smithery MCP."""
+    """Synchronous client for Neon PostgreSQL via Smithery MCP.
+
+    The environment variables for the Smithery credentials were renamed to
+    ``NEON_SMITHERY_API_KEY`` and ``NEON_SMITHERY_MCP_URL``; the settings
+    module still exposes the original names for backwards compatibility.
+    """
 
     def __init__(self):
-        self.base_url = settings.SMITHERY_MCP_URL
-        self.api_key = settings.SMITHERY_API_KEY
+        # prefer the new NEON_SMITHERY_* values, fall back to legacy names
+        self.base_url = getattr(settings, "NEON_SMITHERY_MCP_URL", None) or settings.SMITHERY_MCP_URL
+        self.api_key = getattr(settings, "NEON_SMITHERY_API_KEY", None) or settings.SMITHERY_API_KEY
         self.project_id = settings.NEON_PROJECT_ID
         self.branch_id = getattr(settings, "NEON_BRANCH_ID", None)
         self.database_name = getattr(settings, "NEON_DATABASE_NAME", "neondb")

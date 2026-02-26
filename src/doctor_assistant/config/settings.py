@@ -36,9 +36,12 @@ class Settings:
     # LLM Provider Selection
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")  # "gemini" or "openai"
 
-    # Smithery MCP
-    SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", "")
-    SMITHERY_MCP_URL: str = os.getenv("SMITHERY_MCP_URL", "https://api.smithery.ai/connect/test_syntax/neon-CHOJ/mcp")
+    # Smithery MCP (renamed to NEON_SMITHERY_* in environment)
+    NEON_SMITHERY_API_KEY: str = os.getenv("NEON_SMITHERY_API_KEY", "")
+    NEON_SMITHERY_MCP_URL: str = os.getenv("NEON_SMITHERY_MCP_URL", "https://api.smithery.ai/connect/test_syntax/neon-CHOJ/mcp")
+    # backward compatibility for old variable names (optional)
+    SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", NEON_SMITHERY_API_KEY)
+    SMITHERY_MCP_URL: str = os.getenv("SMITHERY_MCP_URL", NEON_SMITHERY_MCP_URL)
     
     # Neon Database
     NEON_PROJECT_ID: str = os.getenv("NEON_PROJECT_ID", "")
@@ -47,6 +50,10 @@ class Settings:
 
     # Google Maps
     GOOGLE_MAPS_API_KEY: str | None = os.getenv("GOOGLE_MAPS_API_KEY", None)
+
+    # Google Maps via Smithery MCP (new vars)
+    MAP_SMITHERY_API_KEY: str = os.getenv("MAP_SMITHERY_API_KEY", "")
+    MAP_SMITHERY_MCP_URL: str = os.getenv("MAP_SMITHERY_MCP_URL", "")
 
     # LangSmith
     LANGCHAIN_TRACING_V2: bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
@@ -87,8 +94,15 @@ if __name__ == "__main__":
     
     # MCP Settings
     print("\n🔌 MCP Configuration:")
-    print(f"   Smithery Key: {settings.SMITHERY_API_KEY[:10]}..." if settings.SMITHERY_API_KEY else "   Smithery Key: ❌ Not set")
+    # show whichever key is actually used
+    key_preview = settings.NEON_SMITHERY_API_KEY or settings.SMITHERY_API_KEY
+    print(f"   Smithery Key: {key_preview[:10]}..." if key_preview else "   Smithery Key: ❌ Not set")
     print(f"   Neon Project: {settings.NEON_PROJECT_ID or '❌ Not set'}")
+
+    # Map Smithery Settings
+    print("\n🗺️ Map Smithery Configuration:")
+    print(f"   Map API Key: {settings.MAP_SMITHERY_API_KEY[:10]}..." if settings.MAP_SMITHERY_API_KEY else "   Map API Key: ❌ Not set")
+    print(f"   Map MCP URL: {settings.MAP_SMITHERY_MCP_URL or '❌ Not set'}")
     
     # LangSmith Settings
     print("\n📊 LangSmith Configuration:")

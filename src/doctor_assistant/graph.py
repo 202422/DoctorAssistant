@@ -6,6 +6,10 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from .state import State
 
+# ensure LangSmith tracing is configured before any graph operations
+from .config import setup_langsmith
+_LANGSMITH_ENABLED = setup_langsmith()
+
 
 from .agents import planner_agent, supervisor_agent, run_patient_data_agent, run_cardiovascular_agent, run_neurological_agent, synthesis_agent  # for any additional helper functions or classes you defined in agents/__init__.py
 
