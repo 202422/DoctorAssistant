@@ -1,50 +1,25 @@
+import json
 from ..state import State
 from langgraph.prebuilt import create_react_agent
 from ..config import get_llm
 from ..knowledge_bases.cardiovascular_kb import get_retriever
 from langgraph.checkpoint.memory import MemorySaver
 from ..prompts.diagnosis_prompts import CARDIOVASCULAR_PROMPT
-from langchain.agents.middleware import wrap_tool_call
-from langchain.messages import ToolMessage
 from langchain_core.tools import tool
 
 
-
-
-@wrap_tool_call
-def handle_tool_errors(request, handler):
-    """Handle tool execution errors with custom messages."""
-    try:
-        return handler(request)
-    except Exception as e:
-        return ToolMessage(
-            content=f"Tool error: {str(e)}. Please check your input and try again.",
-            tool_call_id=request.tool_call["id"]
-        )
-
-
-
-# -------------------------------------------------
-# Step 1: Initialize LLM and retriever
-# -------------------------------------------------
-llm = get_llm(temperature=0)           # Your LLM (e.g., GPT-4)
-retriever = get_retriever(k=4)         # Vectorstore retriever
-
-# Wrap retriever as a tool for the agent
+llm = get_llm(temperature=0, model="gpt-5.2")
 retriever = get_retriever(k=4)
 
 @tool
 def cardio_search(query: str) -> str:
     """Search the cardiovascular medical knowledge base."""
     docs = retriever.invoke(query)
-    return "\n\n".join(doc.page_content for doc in docs)
+    results = "\n\n".join(doc.page_content for doc in docs)
+    return results
 
-# Optional: memory saver to keep conversation context per patient
 memory_saver = MemorySaver()
 
-# -------------------------------------------------
-# Step 2: Create the ReAct agent
-# -------------------------------------------------
 agent = create_react_agent(
     llm,
     tools=[cardio_search],
@@ -54,52 +29,79 @@ agent = create_react_agent(
 
 
 # -------------------------------------------------
-# Step 3: Run function for a patient query
+# Helper: stream with printed steps
 # -------------------------------------------------
-def run_cardiovascular_node(query: str, patient_info: dict | None = None):
-    """
-    Executes the Cardiovascular RAG agent for a patient.
-    """
-    # Build user message with patient info
+def stream_agent_with_steps(messages: list, config: dict) -> str:
+    """Stream agent execution and print each retrieval step."""
+    final_content = ""
+    step = 0
+
+    for event in agent.stream(
+        {"messages": messages},
+        config=config,
+        stream_mode="values"   # emits full state after each step
+    ):
+        last_msg = event["messages"][-1]
+        msg_type = type(last_msg).__name__
+
+        # Tool call: agent decided to search
+        if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+            for tc in last_msg.tool_calls:
+                step += 1
+                print(f"\n{'='*50}")
+                print(f"🔍 Retrieval Step {step}: {tc['name']}")
+                print(f"   Query: {tc['args'].get('query', tc['args'])}")
+                print(f"{'='*50}")
+
+        # Tool result: what came back from the retriever
+        elif msg_type == "ToolMessage":
+            print(f"\n📄 Retrieved Content (Step {step}):")
+            # Print a preview (first 300 chars per chunk)
+            chunks = last_msg.content.split("\n\n")
+            for i, chunk in enumerate(chunks, 1):
+                print(f"  [{i}] {chunk[:300]}{'...' if len(chunk) > 300 else ''}")
+            print()
+
+        # Final AI response
+        elif msg_type == "AIMessage" and not getattr(last_msg, "tool_calls", None):
+            final_content = last_msg.content
+
+    return final_content
+
+
+# -------------------------------------------------
+# Run functions
+# -------------------------------------------------
+def run_cardiovascular_node(query: str, patient_info: dict | None = None) -> str:
     user_message = f"""## User Query:
 {query}
-    
+
 ## Patient Info
 {patient_info}
 """
-
-     # Configure thread for conversation persistence
-    thread_id = f"patient-{patient_info['patient_id']}" if patient_info and 'patient_id' in patient_info else f"patient-{hash(patient_info['name']) if patient_info else 'unknown'}"
+    thread_id = (
+        f"patient-{patient_info['patient_id']}"
+        if patient_info and "patient_id" in patient_info
+        else f"patient-{hash(patient_info['name']) if patient_info else 'unknown'}"
+    )
     config = {"configurable": {"thread_id": thread_id}}
 
-    # Invoke the agent
-    result = agent.invoke(
-        {"messages": [{"role": "user", "content": user_message}]},
-        config=config
-        
+    return stream_agent_with_steps(
+        [{"role": "user", "content": user_message}],
+        config
     )
 
-    # Extract the final structured response
-    return result["messages"][-1].content
 
+def run_cardiovascular_agent(state: State) -> dict:
+    config = {"configurable": {"thread_id": "cardiovascular_thread"}}
+    final_content = stream_agent_with_steps(state["messages"], config)
 
-def run_cardiovascular_agent(state: State):
-    """
-    This is the node you will import into your main graph.py
-    It receives the FULL conversation history (planner + plan + previous agents)
-    """
-    # Pass the entire messages list so the agent can see:
-    # - Query Analysis
-    # - Step-by-Step Plan
-    # - Its own assigned task
-    result = agent.invoke(
-        {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
-        config={"configurable": {"thread_id": "cardiovascular_thread"}}
-    )
-
-    # Return only the last message (standard LangGraph node pattern)
-    return {"messages": [result["messages"][-1]],
-            "agents_called": state.get("agents_called", []) + ["cardiovascular_agent"]}
+    # Reconstruct a minimal AIMessage for the graph
+    from langchain_core.messages import AIMessage
+    return {
+        "messages": [AIMessage(content=final_content)],
+        "agents_called": state.get("agents_called", []) + ["cardiovascular_agent"]
+    }
 
 
 # -------------------------------------------------
@@ -108,14 +110,13 @@ def run_cardiovascular_agent(state: State):
 if __name__ == "__main__":
     test_query = "I've been experiencing chest pain and shortness of breath for 2 days"
     patient_info = {
-"patient_id": "3",
-"name": "Youssef Kabbaj",
-"age": 71,
-"gender": "Male",
-"medical_history": ["Hypertension"],
-"current_medications": ["Amlodipine"],
-"allergies": ["None"],
-"location": "Clinique Ghandi"
-}
+        "patient_id": "3",
+        "name": "Youssef Kabbaj",
+        "age": 71,
+        "gender": "Male",
+        "medical_history": ["Hypertension"],
+        "current_medications": ["Amlodipine"],
+        "allergies": ["None"],
+        "location": "Clinique Ghandi"
+    }
     diagnosis = run_cardiovascular_node(test_query, patient_info)
-    print(diagnosis)

@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from ..state import State
 from ..config import get_llm
 
-llm = get_llm(temperature=0)
+llm = get_llm(temperature=0, model="gpt-5.2")  # Use the same model as the main LLM for consistency
 
 class Route(BaseModel):
     next: Literal[

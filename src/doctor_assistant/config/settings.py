@@ -26,15 +26,8 @@ class Settings:
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5.2")
     OPENAI_BASE_URL: str | None = os.getenv("OPENAI_BASE_URL", None)
 
-    # Google Gemini
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-
-    # LLM Provider Selection
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")  # "gemini" or "openai"
 
     # Smithery MCP (renamed to NEON_SMITHERY_* in environment)
     NEON_SMITHERY_API_KEY: str = os.getenv("NEON_SMITHERY_API_KEY", "")

@@ -59,10 +59,10 @@ class GoogleMapsMCPClient:
         # Persistent synchronous HTTP client
         self._client = httpx.Client(
             timeout=httpx.Timeout(
-                connect=15.0,
-                read=90.0,
-                write=30.0,
-                pool=15.0
+                connect=15.0,   # was 15.0
+        read=10.0,     
+        write=10.0,    
+        pool=5.0       
             ),
             limits=httpx.Limits(
                 max_connections=10,

@@ -7,7 +7,7 @@ from ..prompts import PLANNER_SYSTEM_PROMPT
 from ..config import get_llm
 
 
-llm = get_llm(temperature=0)  # deterministic output for planning
+llm = get_llm(temperature=0, model="gpt-5.2")  # deterministic output for planning
 
 
 

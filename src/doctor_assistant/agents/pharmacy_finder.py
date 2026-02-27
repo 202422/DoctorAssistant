@@ -30,7 +30,7 @@ def handle_tool_errors(request, handler):
 # AGENT SETUP (ReAct agent stays exactly the same)
 # ============================================================================
 
-llm = get_llm(temperature=0)
+llm = get_llm(temperature=0, model="gpt-5.2")  # Use the same model as the main LLM for consistency
 
 checkpointer = MemorySaver()
 
