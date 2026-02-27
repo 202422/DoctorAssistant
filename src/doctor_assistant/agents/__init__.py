@@ -6,6 +6,7 @@ from .patient_data import run_patient_data_agent
 from .planner import planner_agent
 from .supervisor import supervisor_agent
 from .synthesis_agent import synthesis_agent
+from .pharmacy_finder import run_pharmacy_finder_agent
 
 __all__ = [
     "run_cardiovascular_agent",
@@ -14,4 +15,5 @@ __all__ = [
     "planner_agent",
     "supervisor_agent",
     "synthesis_agent",
+    "run_pharmacy_finder_agent"
 ]

@@ -123,5 +123,7 @@ pypdf
 langchain_huggingface
 sentence-transformers
 
+openlocationcode
+geopy
 
 nest_asyncio

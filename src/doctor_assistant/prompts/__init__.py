@@ -24,7 +24,11 @@ from .supervisor_prompts import (
     SUPERVISOR_VALIDATION_PROMPT,
 )
 
-__all__ = ["SYNTHESIS_PROMPT",
+from .pharmacy_prompts import (
+    PHARMACY_SYSTEM_PROMPT,
+)
+
+__all__ = ["PHARMACY_SYSTEM_PROMPT", "SYNTHESIS_PROMPT",
     "CARDIOVASCULAR_PROMPT",
     "NEUROLOGICAL_PROMPT",
     "NEUROLOGICAL_FINAL_PROMPT",

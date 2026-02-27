@@ -87,7 +87,7 @@ class ReActStep(TypedDict):
 
 class PlanStep(BaseModel):
     step_number: int
-    agent: Literal["patient_data_agent", "cardiovascular_agent", "neurological_agent", "synthesis_agent"]
+    agent: Literal["patient_data_agent", "cardiovascular_agent", "neurological_agent", "pharmacy_finder_agent", "synthesis_agent"]
     task: Annotated[str, Field(description="Exact task this agent should perform")]
     purpose: Annotated[str, Field(description="Why this step is important")]
 

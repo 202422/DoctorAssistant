@@ -11,7 +11,7 @@ from .config import setup_langsmith
 _LANGSMITH_ENABLED = setup_langsmith()
 
 
-from .agents import planner_agent, supervisor_agent, run_patient_data_agent, run_cardiovascular_agent, run_neurological_agent, synthesis_agent  # for any additional helper functions or classes you defined in agents/__init__.py
+from .agents import planner_agent, run_pharmacy_finder_agent, supervisor_agent, run_patient_data_agent, run_cardiovascular_agent, run_neurological_agent, synthesis_agent  # for any additional helper functions or classes you defined in agents/__init__.py
 
 
 import warnings
@@ -29,6 +29,7 @@ builder.add_node("patient_data_agent",  run_patient_data_agent)
 builder.add_node("cardiovascular_agent", run_cardiovascular_agent)
 builder.add_node("neurological_agent",  run_neurological_agent)
 builder.add_node("synthesis_agent",     synthesis_agent)
+builder.add_node("pharmacy_finder_agent", run_pharmacy_finder_agent)
 
 # Fixed entry flow
 builder.add_edge(START, "planner_agent")
@@ -65,6 +66,7 @@ builder.add_conditional_edges(
         "patient_data_agent": "patient_data_agent",
         "cardiovascular_agent": "cardiovascular_agent",
         "neurological_agent": "neurological_agent",
+        "pharmacy_finder_agent": "pharmacy_finder_agent",
         "synthesis_agent": "synthesis_agent"
     }
 )
@@ -73,6 +75,7 @@ builder.add_conditional_edges(
 builder.add_edge("patient_data_agent",  "supervisor_agent")
 builder.add_edge("cardiovascular_agent", "supervisor_agent")
 builder.add_edge("neurological_agent",  "supervisor_agent")
+builder.add_edge("pharmacy_finder_agent", "supervisor_agent")
 
 # Only synthesis ends the workflow
 builder.add_edge("synthesis_agent", END)
@@ -117,8 +120,7 @@ if __name__ == "__main__":
     # Run example
     config = {"configurable": {"thread_id": "medical-case-001"}}
 
-    user_query = "Youssef Kabbaj has chest pain radiating to left arm and recent dizziness. Diagnose"
-
+    user_query = "Ahmed Benali needs to find nearby pharmacies within 5000 meters to buy his medications. He is driving."
     print("🚀 Starting multi-agent medical workflow...\n")
     result = graph.invoke(
         {"messages": [("user", user_query)]},

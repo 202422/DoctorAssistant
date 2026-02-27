@@ -1,8 +1,8 @@
 import json
-from langchain_core.tools import Tool
+from langchain_core.tools import StructuredTool, StructuredTool, Tool
 
 from src.doctor_assistant.tools.coordinates_finder import get_coordinates_batch
-from src.doctor_assistant.tools.distance_computer import street_distance_osrm
+from src.doctor_assistant.tools.distance_computer import StreetDistanceInput, street_distance_osrm
 
 
 
@@ -24,21 +24,14 @@ non_mcp_tools = [
     Automatically waits 1.1 seconds between requests (Nominatim policy).
     """
     )),
-
-    Tool(name="street_distance_osrm",
-        func=street_distance_osrm,
-        description=(
-        """
-    Compute street network distance between two points using OSRM.
-
-    Parameters:
-        lon1 (float): Origin longitude
-        lat1 (float): Origin latitude
-        lon2 (float): Destination longitude
-        lat2 (float): Destination latitude
-        profile (str): Routing profile ("driving", "walking", "cycling")
-
-    Returns:
-        float: Distance in kilometers
-    """))  
+StructuredTool.from_function(
+    func=street_distance_osrm,
+    name="street_distance_osrm",
+    description=(
+        "Calculate the real street distance in kilometers between two GPS coordinates "
+        "using OSRM. Provide lon1/lat1 (origin) and lon2/lat2 (destination), "
+        "and a travel profile: 'driving', 'walking', or 'cycling'."
+    ),
+    args_schema=StreetDistanceInput,
+)
 ]
