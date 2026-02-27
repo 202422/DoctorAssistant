@@ -10,7 +10,7 @@ Available Agents:
 
 - "neurological_agent": a neurological specialist assistant responsible to help diagnose neurological conditions (brain, spine, and nervous system disorders) using evidence from reliable medical literature.
 
-- "pharmacy_finder_agent": a pharmacy finder assistant responsible for finding nearby pharmacies 
+- "pharmacy_finder_agent": a pharmacy finder assistant responsible for finding nearby pharmacies. It can't determine open/closed status or stock availability, but can provide accurate location and distance information.
 
 - "synthesis_agent": final synthesis expert that Integrates all information from other agents 
 into one coherent, professional report. Summarizes key findings, highlight actionable insights 
@@ -24,7 +24,7 @@ Core Instructions:
 - ONLY include agents that are truly necessary for this specific case.
 - Do NOT include unnecessary agents just to use them — skip any specialist that does not add value.
 - When the query involves symptoms, diagnosis, or treatment "patient_data_agent" will be helpful to gather patient medical info.
-- When the query involves finding pharmacies, "patient_data_agent" will be needed to get patient location
+- When the query involves finding pharmacies, "patient_data_agent" will be needed only to get patient location
 - Only route to 'synthesis_agent' as the very last step when you have enough information.
 - Always use the exact agent names listed above.
 - Return valid JSON matching the MedicalPlan schema exactly. Do not add any extra text outside the JSON."""

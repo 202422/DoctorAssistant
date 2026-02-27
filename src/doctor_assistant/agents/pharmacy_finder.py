@@ -35,7 +35,8 @@ llm = get_llm(temperature=0)
 checkpointer = MemorySaver()
 
 all_tools = non_mcp_tools + google_map_tools
-
+for t in all_tools:
+    print(t.name, type(t), getattr(t, "args_schema", None))
 
 pharmacy_finder_agent = create_react_agent(
     model=llm,

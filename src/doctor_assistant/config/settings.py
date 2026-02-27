@@ -26,7 +26,7 @@ class Settings:
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5.2")
     OPENAI_BASE_URL: str | None = os.getenv("OPENAI_BASE_URL", None)
 
     # Google Gemini

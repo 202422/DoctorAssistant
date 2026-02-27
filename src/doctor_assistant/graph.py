@@ -120,7 +120,7 @@ if __name__ == "__main__":
     # Run example
     config = {"configurable": {"thread_id": "medical-case-001"}}
 
-    user_query = "Ahmed Benali needs to find nearby pharmacies within 5000 meters to buy his medications. He is driving."
+    user_query = "Salma Rami needs to find nearby pharmacies within 5000 meters to buy his medications. He is driving."
     print("🚀 Starting multi-agent medical workflow...\n")
     result = graph.invoke(
         {"messages": [("user", user_query)]},
