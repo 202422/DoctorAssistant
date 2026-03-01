@@ -1,29 +1,62 @@
-"""Gradio Chat Interface for Doctor Assistant."""
+"""
+Gradio Chat Interface for Doctor Assistant Multi-Agent System.
+
+Provides a web-based chat UI for interacting with the medical assistant.
+Users can describe symptoms, request diagnoses, and find nearby pharmacies.
+
+Features:
+- Conversational chat interface with message history
+- Example prompts for common use cases
+- Automatic graph visualization export
+- LangSmith tracing integration
+
+URL: http://localhost:7860
+"""
 
 import sys
 import os
 
+import gradio as gr
 
+from .graph import run_doctor_assistant, graph
+from .config import setup_langsmith
+
+
+# =============================================================================
+# INITIALIZATION
+# =============================================================================
+
+# Enable LangSmith tracing if configured
+LANGSMITH_ENABLED = setup_langsmith()
+
+# Add source directory to Python path for imports
 SRC_DIR = os.path.abspath(os.path.dirname(__file__))
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-# Add parent directory for imports
+# Add parent directory for package imports
 PARENT_DIR = os.path.abspath(os.path.join(SRC_DIR, ".."))
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
-import gradio as gr
-from doctor_assistant.graph import run_doctor_assistant, graph, print_response
-from doctor_assistant.config import setup_langsmith
-LANGSMITH_ENABLED = setup_langsmith()
-
-# Number of past interactions to include in context
+# Chat history limit (prevents context from growing too large)
 MAX_HISTORY_INTERACTIONS = 3
 
 
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
 def save_graph():
-    """Save the agent graph and return the path."""
+    """
+    Export the LangGraph agent workflow as a PNG image.
+    
+    Generates a Mermaid diagram showing:
+    Planner → Supervisor → Specialist Agents → Synthesis
+    
+    Returns:
+        Path to saved PNG, or None if export fails.
+    """
     try:
         png_bytes = graph.get_graph().draw_mermaid_png()
         graph_path = os.path.join(SRC_DIR, "doctor_assistant_graph.png")
@@ -37,7 +70,16 @@ def save_graph():
 
 def format_response(result: dict) -> str:
     """
-    Format the doctor assistant response as Markdown.
+    Format the agent's response as Markdown for display.
+    
+    Extracts the final message from the graph result and
+    adds a medical disclaimer.
+    
+    Args:
+        result: Raw output from run_doctor_assistant().
+    
+    Returns:
+        Formatted Markdown string.
     """
     if isinstance(result, str):
         return result
@@ -47,13 +89,13 @@ def format_response(result: dict) -> str:
     
     parts = []
     
-    # Extract the final message from the graph result
+    # Extract final message from conversation history
     if result.get('messages'):
         final_message = result['messages'][-1].content if hasattr(result['messages'][-1], 'content') else str(result['messages'][-1])
         parts.append("### 📋 Medical Assessment\n")
         parts.append(final_message)
     
-    # Disclaimer
+    # Always append medical disclaimer
     parts.append("""
 ---
 ⚠️ *This is an AI assistant for informational purposes only. Always consult a qualified healthcare professional.*
@@ -63,7 +105,11 @@ def format_response(result: dict) -> str:
 
 
 def ensure_string(value) -> str:
-    """Ensure a value is a string."""
+    """
+    Convert any value to a display-friendly string.
+    
+    Handles dicts, lists, and other types gracefully.
+    """
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
@@ -73,26 +119,45 @@ def ensure_string(value) -> str:
     return str(value)
 
 
+# =============================================================================
+# CHAT HANDLERS
+# =============================================================================
+
 def respond(message: str, chat_history: list) -> tuple:
-    """Generate response and update chat history."""
+    """
+    Process user message and generate assistant response.
     
+    Flow:
+    1. Validate input
+    2. Add user message to history
+    3. Run multi-agent graph
+    4. Format and append response
+    
+    Args:
+        message: User's input text.
+        chat_history: List of previous messages.
+    
+    Returns:
+        Tuple of (cleared input, updated history).
+    """
     if not message.strip():
         return "", chat_history
     
-    # Add user message to history
+    # Add user message to chat history
     chat_history.append({"role": "user", "content": message})
     
     try:
-        # Run the doctor assistant
+        # Run the multi-agent system
         result = run_doctor_assistant(message)
         
-        # Format the response
+        # Format response for display
         if isinstance(result, dict) and result.get('messages'):
             formatted_response = format_response(result)
         else:
             formatted_response = str(result)
         
     except Exception as e:
+        # Display error message on failure
         formatted_response = f"❌ **Error:** {str(e)}\n\nPlease try again or rephrase your query."
     
     # Add assistant response to history
@@ -102,32 +167,38 @@ def respond(message: str, chat_history: list) -> tuple:
 
 
 def clear_chat():
-    """Clear the chat history."""
+    """Reset chat history and input field."""
     return [], ""
 
 
-# ============================================================
-# BUILD THE INTERFACE
-# ============================================================
+# =============================================================================
+# GRADIO INTERFACE
+# =============================================================================
 
 with gr.Blocks(title="🏥 Doctor Assistant") as demo:
     
-    # Header
+    # -------------------------------------------------------------------------
+    # HEADER
+    # -------------------------------------------------------------------------
     gr.Markdown("""
     # 🏥 Doctor Assistant
-    Your AI assistant for **medical symptom analysis** and **preliminary diagnosis**.
+    Your AI assistant for **medical symptom analysis**, **preliminary diagnosis** and **finding nearby pharmacies.**
     
-    **How to use:** Enter the patient's name and describe their symptoms.
+    **How to use:** Enter the patient's name when entering your query.
     """)
     
-    # Chatbot
+    # -------------------------------------------------------------------------
+    # CHAT DISPLAY
+    # -------------------------------------------------------------------------
     chatbot = gr.Chatbot(
         height=500,
         placeholder="Describe the patient and their symptoms...",
         layout="bubble",
     )
     
-    # Input Row
+    # -------------------------------------------------------------------------
+    # INPUT CONTROLS
+    # -------------------------------------------------------------------------
     with gr.Row():
         msg = gr.Textbox(
             placeholder="Example: John Doe has chest pain and shortness of breath for 2 days",
@@ -136,28 +207,33 @@ with gr.Blocks(title="🏥 Doctor Assistant") as demo:
         )
         submit_btn = gr.Button("Send 📤", scale=1, variant="primary")
     
-    # Clear Button
     with gr.Row():
         clear_btn = gr.Button("🗑️ Clear Chat")
     
-    # Example Prompts
+    # -------------------------------------------------------------------------
+    # EXAMPLE PROMPTS
+    # -------------------------------------------------------------------------
     gr.Markdown("### 💡 Try these examples:")
     gr.Examples(
         examples=[
             "Youssef Kabbaj has been experiencing chest pain and shortness of breath for 2 days",
             "Fatima Zahra Lahlou complains of severe headaches with visual disturbances and numbness in her left hand",
-            "Patient Robert Johnson reports chest pain, dizziness, and confusion",
-            "John Doe has high blood pressure and feels dizzy with occasional palpitations",
+            "Salma Rami needs to find nearby pharmacies within 5000 meters to buy his medications. She is walking.",
+            "Youssef Kabbaj is looking for nearby pharmacies within 10000 meters to buy his medications. He is driving.",
         ],
         inputs=msg,
     )
     
-    # Event Handlers
-    msg.submit(respond, [msg, chatbot], [msg, chatbot])
-    submit_btn.click(respond, [msg, chatbot], [msg, chatbot])
-    clear_btn.click(clear_chat, outputs=[chatbot, msg])
+    # -------------------------------------------------------------------------
+    # EVENT HANDLERS
+    # -------------------------------------------------------------------------
+    msg.submit(respond, [msg, chatbot], [msg, chatbot])       # Enter key
+    submit_btn.click(respond, [msg, chatbot], [msg, chatbot])  # Button click
+    clear_btn.click(clear_chat, outputs=[chatbot, msg])        # Clear button
     
-    # Footer
+    # -------------------------------------------------------------------------
+    # FOOTER
+    # -------------------------------------------------------------------------
     gr.Markdown("""
     ---
     ⚠️ **Disclaimer:** This is an AI assistant for informational purposes only. 
@@ -167,19 +243,20 @@ with gr.Blocks(title="🏥 Doctor Assistant") as demo:
     """)
 
 
-# ============================================================
-# MAIN
-# ============================================================
+# =============================================================================
+# APPLICATION ENTRY POINT
+# =============================================================================
 
 if __name__ == "__main__":
-    # Save the graph on startup
+    # Export graph visualization on startup
     graph_path = save_graph()
     if graph_path:
         print(f"✅ Graph saved to: {graph_path}")
     
+    # Launch Gradio server
     print("\n🚀 Starting Doctor Assistant at http://localhost:7860")
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="0.0.0.0",  # Accept connections from any IP
         server_port=7860,
-        share=False,
+        share=False,            # Set True to create public URL
     )

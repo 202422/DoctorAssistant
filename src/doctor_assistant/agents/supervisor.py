@@ -1,67 +1,90 @@
-from pydantic import BaseModel, Field
-from typing import Literal
-from langchain_openai import ChatOpenAI
-from ..state import State
-from ..config import get_llm
+"""
+Supervisor Agent Module for Doctor Assistant Multi-Agent System.
 
-llm = get_llm(temperature=0, model="gpt-5.2")  # Use the same model as the main LLM for consistency
+The Supervisor is the central router that orchestrates specialist agents.
+It follows the Planner's execution plan and decides which agent to call next
+based on the current conversation state.
+
+Flow: Planner → Supervisor → [Specialist Agents] → Supervisor → ... → Synthesis
+"""
+
+from typing import Literal
+
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+
+from ..config import get_llm
+from ..prompts import SUPERVISOR_LLM_PROMPT
+from ..state import State
+
+
+# =============================================================================
+# LLM CONFIGURATION
+# =============================================================================
+
+# Supervisor uses structured output for reliable routing decisions
+llm = get_llm(temperature=0, model="gpt-5.2")  # temperature=0 for deterministic routing
+
+
+# =============================================================================
+# ROUTING SCHEMA
+# =============================================================================
 
 class Route(BaseModel):
+    """
+    Structured output schema for supervisor routing decisions.
+    
+    Forces the LLM to return a valid agent name and reasoning,
+    preventing hallucinated or invalid routing targets.
+    """
     next: Literal[
-        "patient_data_agent",
-        "cardiovascular_agent",
-        "neurological_agent",
-        "pharmacy_finder_agent",
-        "synthesis_agent"
+        "patient_data_agent",      # Fetches patient records from Neon DB
+        "cardiovascular_agent",    # RAG-based heart condition diagnosis
+        "neurological_agent",      # RAG-based neurological diagnosis
+        "pharmacy_finder_agent",   # Locates nearby pharmacies via Google Maps
+        "synthesis_agent",         # Combines all findings into final response
     ]
-    reason: str = Field(..., description="Short explanation of why this agent is next")
+    reason: str = Field(
+        ...,
+        description="Short explanation of why this agent is next",
+    )
+
+
+# =============================================================================
+# SUPERVISOR AGENT
+# =============================================================================
 
 def supervisor_agent(state: State) -> dict:
-    """Central router that follows the planner's plan and coordinates multi-agent execution."""
-    
-    system_prompt = """
-You are the Supervisor Agent — the central coordinator of a multi-agent workflow.
-
-Your ONLY job is to:
-1. Follow the Step-by-Step Plan created by the Planner EXACTLY.
-2. Decide which agent should act NEXT based on the plan and the current conversation state.
-3. Only call agents that are still needed according to the plan.
-4. When all required steps are complete → immediately route to "synthesis_agent".
-5. NEVER loop forever — stop as soon as the plan is finished.
-
-Rules you MUST follow strictly:
-- Look at the most recent message containing "**Step-by-Step Plan**" — this is your guide.
-- Only call an agent if its step has not yet been completed, or if the plan explicitly allows multiple calls.
-- If the last message is from "synthesis_agent" (or contains a final report), DO NOT call more agents — route to END.
-- Do NOT invent new steps or agents — stick strictly to the Planner's plan.
-- When unsure if the plan is complete → prefer routing to "synthesis_agent" rather than looping.
-
-Available agents (use these exact names):
-- "patient_data_agent"      – retrieves structured patient information
-- "cardiovascular_agent"    – analyzes cardiovascular data
-- "neurological_agent"      – analyzes neurological data
-- "pharmacy_finder_agent"   – retrieves and analyzes pharmacy/location data
-- "synthesis_agent"         – final report generator (ONLY call when ready)
-
-Output format:
-Return ONLY valid JSON matching this schema:
-{
-  "next": "patient_data_agent" | "cardiovascular_agent" | "neurological_agent" | "pharmacy_finder_agent" | "synthesis_agent",
-  "reason": "short explanation why you chose this next agent (1 sentence)"
-}
     """
-
-    # Wrap LLM with structured output
+    Central router that coordinates the multi-agent workflow.
+    
+    Responsibilities:
+    1. Analyze current conversation state and planner's instructions
+    2. Decide which specialist agent should act next
+    3. Track execution history (agents_called)
+    4. Route to synthesis_agent when all tasks are complete
+    
+    Args:
+        state: Current graph state containing messages and execution history.
+    
+    Returns:
+        Dict with:
+        - next: Name of the next agent to invoke
+        - agents_called: Updated list of agents that have been called
+    """
+    # Wrap LLM with structured output for type-safe routing
     structured_llm = llm.with_structured_output(Route)
+
+    # Get routing decision from LLM
     decision: Route = structured_llm.invoke([
-        ("system", system_prompt),
-        *state["messages"]
+        ("system", SUPERVISOR_LLM_PROMPT),
+        *state["messages"],  # Include full conversation history
     ])
 
     print(f"🔀 Supervisor → {decision.next} | Reason: {decision.reason}")
-    
-    # Return next agent decision and maintain agents_called history
+
+    # Return routing decision and update execution history
     return {
         "next": decision.next,
-        "agents_called": state.get("agents_called", []) + ["supervisor_agent"]
+        "agents_called": state.get("agents_called", []) + ["supervisor_agent"],
     }

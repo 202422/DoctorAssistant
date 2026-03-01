@@ -91,17 +91,3 @@ Rules for the dictionary:
 
 You fail if you return anything other than this exact dictionary structure.
 """
-
-
-PATIENT_DATA_EXTRACT_PROMPT = """Extract patient identification from the following query.
-
-Query: {query}
-
-Look for:
-1. Patient ID (a number, often prefixed with "patient", "id", "#", or "P")
-2. Patient name (a person's name)
-
-## Response Format (follow exactly):
-PATIENT_ID: <number or "unknown">
-PATIENT_NAME: <name or "unknown">
-"""

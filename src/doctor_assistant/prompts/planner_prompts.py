@@ -27,13 +27,5 @@ Core Instructions:
 - When the query involves finding pharmacies, "patient_data_agent" will be needed only to get patient location
 - Only route to 'synthesis_agent' as the very last step when you have enough information.
 - Always use the exact agent names listed above.
-- Return valid JSON matching the MedicalPlan schema exactly. Do not add any extra text outside the JSON."""
-
-PLANNER_USER_PROMPT = """
-## Query: {query}
-
-Analyze this medical query:
-1. Extract the patient's name if mentioned
-2. Determine urgency level
-3. Create an execution plan
+- Return valid JSON matching the MedicalPlan schema exactly. Do not add any extra text outside the JSON.
 """

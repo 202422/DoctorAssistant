@@ -1,4 +1,9 @@
-"""Application settings using dotenv."""
+"""
+Settings Module for Doctor Assistant Multi-Agent System.
+
+Loads configuration from environment variables using dotenv.
+Provides centralized access to API keys and service configurations.
+"""
 
 import os
 from functools import lru_cache
@@ -7,105 +12,142 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-# Find project root and load .env
+# =============================================================================
+# ENVIRONMENT SETUP
+# =============================================================================
+
 def get_project_root() -> Path:
-    """Find project root by looking for .env file."""
+    """
+    Find the project root directory by searching for .env file.
+    
+    Traverses up from this file's location until .env is found.
+    Falls back to 4 levels up if .env doesn't exist.
+    """
     current = Path(__file__).resolve()
     for parent in current.parents:
         if (parent / ".env").exists():
             return parent
-    return current.parent.parent.parent.parent  # fallback
+    # Fallback: assume standard project structure
+    return current.parent.parent.parent.parent
 
 
-# Load .env immediately
+# Load environment variables at module import
 load_dotenv(get_project_root() / ".env")
 
 
+# =============================================================================
+# SETTINGS CLASS
+# =============================================================================
+
 class Settings:
-    """Application settings loaded from environment variables."""
+    """
+    Centralized configuration for the Doctor Assistant system.
+    
+    All settings are loaded from environment variables with sensible defaults.
+    Organized by service/feature for easy maintenance.
+    """
 
-    # OpenAI
+    # -------------------------------------------------------------------------
+    # OpenAI Configuration (for LLM agents)
+    # -------------------------------------------------------------------------
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_BASE_URL: str | None = os.getenv("OPENAI_BASE_URL", None)
+    OPENAI_BASE_URL: str | None = os.getenv("OPENAI_BASE_URL", None)  # Custom endpoint if needed
 
-
-    # Smithery MCP (renamed to NEON_SMITHERY_* in environment)
+    # -------------------------------------------------------------------------
+    # Neon Database MCP (for PatientDataRetriever agent)
+    # -------------------------------------------------------------------------
     NEON_SMITHERY_API_KEY: str = os.getenv("NEON_SMITHERY_API_KEY", "")
-    NEON_SMITHERY_MCP_URL: str = os.getenv("NEON_SMITHERY_MCP_URL", "https://api.smithery.ai/connect/test_syntax/neon-CHOJ/mcp")
-    # backward compatibility for old variable names (optional)
+    NEON_SMITHERY_MCP_URL: str = os.getenv(
+        "NEON_SMITHERY_MCP_URL",
+        "https://api.smithery.ai/connect/test_syntax/neon-CHOJ/mcp"
+    )
+    # Legacy variable names (backward compatibility)
     SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", NEON_SMITHERY_API_KEY)
     SMITHERY_MCP_URL: str = os.getenv("SMITHERY_MCP_URL", NEON_SMITHERY_MCP_URL)
-    
-    # Neon Database
+
+    # Neon project identifiers
     NEON_PROJECT_ID: str = os.getenv("NEON_PROJECT_ID", "")
     NEON_BRANCH_ID: str | None = os.getenv("NEON_BRANCH_ID", None)
     NEON_DATABASE_NAME: str = "neondb"
 
-    # Google Maps
+    # -------------------------------------------------------------------------
+    # Google Maps MCP (for PharmacyFinder agent)
+    # -------------------------------------------------------------------------
     GOOGLE_MAPS_API_KEY: str | None = os.getenv("GOOGLE_MAPS_API_KEY", None)
-
-    # Google Maps via Smithery MCP (new vars)
     MAP_SMITHERY_API_KEY: str = os.getenv("MAP_SMITHERY_API_KEY", "")
     MAP_SMITHERY_MCP_URL: str = os.getenv("MAP_SMITHERY_MCP_URL", "")
 
-    # LangSmith
+    # -------------------------------------------------------------------------
+    # LangSmith (tracing & observability)
+    # -------------------------------------------------------------------------
     LANGCHAIN_TRACING_V2: bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
     LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "doctor-assistant")
 
-    # App settings
+    # -------------------------------------------------------------------------
+    # Application Settings
+    # -------------------------------------------------------------------------
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
 
+# =============================================================================
+# SETTINGS ACCESS
+# =============================================================================
+
 @lru_cache()
 def get_settings() -> Settings:
-    """Get cached settings instance."""
+    """
+    Get cached Settings instance (singleton pattern).
+    
+    Uses lru_cache to ensure only one Settings object exists.
+    """
     return Settings()
 
 
-# Quick access
+# Global settings instance for convenient imports
 settings = get_settings()
 
 
-# Test
+# =============================================================================
+# CONFIGURATION VERIFICATION (run directly to test)
+# =============================================================================
+
 if __name__ == "__main__":
+    """Print all settings to verify configuration is loaded correctly."""
+    
     print("=" * 50)
     print("📋 DOCTOR ASSISTANT SETTINGS")
     print("=" * 50)
-    
-    # LLM Settings
+
+    # Helper to safely preview API keys
+    def preview_key(key: str) -> str:
+        return f"{key[:10]}..." if key else "❌ Not set"
+
+    # LLM
     print("\n🤖 LLM Configuration:")
-    print(f"   Provider: {settings.LLM_PROVIDER}")
-    if settings.LLM_PROVIDER == "openai":
-        print(f"   OpenAI Key: {settings.OPENAI_API_KEY[:10]}..." if settings.OPENAI_API_KEY else "   OpenAI Key: ❌ Not set")
-        print(f"   OpenAI Model: {settings.OPENAI_MODEL}")
-    else:
-        print(f"   Gemini Key: {settings.GEMINI_API_KEY[:10]}..." if settings.GEMINI_API_KEY else "   Gemini Key: ❌ Not set")
-        print(f"   Gemini Model: {settings.GEMINI_MODEL}")
-    
-    # MCP Settings
-    print("\n🔌 MCP Configuration:")
-    # show whichever key is actually used
-    key_preview = settings.NEON_SMITHERY_API_KEY or settings.SMITHERY_API_KEY
-    print(f"   Smithery Key: {key_preview[:10]}..." if key_preview else "   Smithery Key: ❌ Not set")
+    print(f"   OpenAI Key: {preview_key(settings.OPENAI_API_KEY)}")
+
+    # Neon MCP
+    print("\n🔌 Neon MCP Configuration:")
+    print(f"   Smithery Key: {preview_key(settings.NEON_SMITHERY_API_KEY)}")
     print(f"   Neon Project: {settings.NEON_PROJECT_ID or '❌ Not set'}")
 
-    # Map Smithery Settings
-    print("\n🗺️ Map Smithery Configuration:")
-    print(f"   Map API Key: {settings.MAP_SMITHERY_API_KEY[:10]}..." if settings.MAP_SMITHERY_API_KEY else "   Map API Key: ❌ Not set")
+    # Google Maps MCP
+    print("\n🗺️ Google Maps MCP Configuration:")
+    print(f"   Map API Key: {preview_key(settings.MAP_SMITHERY_API_KEY)}")
     print(f"   Map MCP URL: {settings.MAP_SMITHERY_MCP_URL or '❌ Not set'}")
-    
-    # LangSmith Settings
+
+    # LangSmith
     print("\n📊 LangSmith Configuration:")
-    print(f"   Tracing Enabled: {'✅ Yes' if settings.LANGCHAIN_TRACING_V2 else '❌ No'}")
+    print(f"   Tracing: {'✅ Enabled' if settings.LANGCHAIN_TRACING_V2 else '❌ Disabled'}")
     print(f"   Project: {settings.LANGCHAIN_PROJECT}")
-    print(f"   API Key: {settings.LANGCHAIN_API_KEY[:10]}..." if settings.LANGCHAIN_API_KEY else "   API Key: ❌ Not set")
-    
-    # App Settings
+    print(f"   API Key: {preview_key(settings.LANGCHAIN_API_KEY)}")
+
+    # App
     print("\n⚙️ App Configuration:")
     print(f"   Debug: {settings.DEBUG}")
     print(f"   Log Level: {settings.LOG_LEVEL}")
-    
+
     print("\n" + "=" * 50)
