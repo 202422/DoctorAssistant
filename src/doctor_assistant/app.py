@@ -247,12 +247,19 @@ with gr.Blocks(title="🏥 Doctor Assistant") as demo:
 # APPLICATION ENTRY POINT
 # =============================================================================
 
-if __name__ == "__main__":
+def main():
+    """
+    Main entry point for the Doctor Assistant application.
+
+    Called when running:
+    - python -m doctor_assistant.app
+    - doctor-assistant (CLI command after pip install)
+    """
     # Export graph visualization on startup
     graph_path = save_graph()
     if graph_path:
         print(f"✅ Graph saved to: {graph_path}")
-    
+
     # Launch Gradio server
     print("\n🚀 Starting Doctor Assistant at http://localhost:7860")
     demo.launch(
@@ -260,3 +267,7 @@ if __name__ == "__main__":
         server_port=7860,
         share=False,            # Set True to create public URL
     )
+
+
+if __name__ == "__main__":
+    main()

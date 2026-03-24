@@ -127,3 +127,97 @@ comprehensive medical assessments.
 </tr>
 
 </table>
+
+## Getting Started
+
+### Prerequisites
+
+- **Python 3.12+** - [Download Python](https://www.python.org/downloads/)
+- **Git** - [Download Git](https://git-scm.com/downloads)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/202422/DoctorAssistant.git
+   cd DoctorAssistant
+   ```
+
+2. **Create and activate a virtual environment**
+   ```bash
+   # Create virtual environment
+   python -m venv .doctor_venv
+
+   # Activate (Windows)
+   .doctor_venv\Scripts\activate
+
+   # Activate (macOS/Linux)
+   source .doctor_venv/bin/activate
+   ```
+
+3. **Install the package**
+   ```bash
+   # Install in editable mode
+   pip install -e .
+
+   # Or with development dependencies (testing, linting)
+   pip install -e ".[dev]"
+   ```
+
+### Configuration
+
+1. **Set up environment variables**
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` and fill in your API keys:**
+
+   | Variable | Description | Where to get it |
+   |----------|-------------|-----------------|
+   | `OPENAI_API_KEY` | OpenAI API key | [platform.openai.com](https://platform.openai.com/) |
+   | `NEON_SMITHERY_API_KEY` | Smithery API key for Neon MCP | [smithery.ai](https://smithery.ai/) |
+   | `MAP_SMITHERY_API_KEY` | Smithery API key for Google Maps MCP | [smithery.ai](https://smithery.ai/) |
+   | `LANGSMITH_API_KEY` | LangSmith tracing (optional) | [smith.langchain.com](https://smith.langchain.com/) |
+   | `NEON_DATABASE_URL` | PostgreSQL connection string | [neon.tech](https://neon.tech/) |
+
+### Running the Application
+
+```bash
+# Option 1: Using the CLI command
+doctor-assistant
+
+# Option 2: Using Python module
+python -m doctor_assistant.app
+```
+
+The application will start at **http://localhost:7860**
+
+
+## Project Structure
+
+```
+DoctorAssistant/
+├── src/
+│   └── doctor_assistant/       # Main package
+│       ├── agents/             # Specialized agents (planner, supervisor, specialists)
+│       ├── config/             # Configuration and settings
+│       ├── knowledge_bases/    # RAG vector stores
+│       ├── mcp/                # MCP client connections
+│       ├── tools/              # Agent tools
+│       ├── app.py              # Gradio web interface
+│       └── graph.py            # LangGraph workflow
+├── tests/                      # Unit and integration tests
+├── data/
+│   ├── knowledge_bases/        # Medical PDF documents
+│   └── samples/                # Sample patient data
+├── docs/                       # Documentation
+├── .env.example                # Environment template
+├── pyproject.toml              # Project configuration
+└── README.md
+```
+
+## License
+
+This project is licensed under the MIT License.
