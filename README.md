@@ -6,8 +6,21 @@ AI-powered medical symptom analysis and preliminary diagnosis. It orchestrates m
 comprehensive medical assessments.
 
 
+![](/src/doctor_assistant/doctor_assistant_graph.png)
 
-![](medical_multiagent_graph.png)
+## Table of Contents
+
+- [Video Demo](#video-demo)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Running the Application](#running-the-application)
+- [Project Structure](#project-structure)
+- [License](#license)
+
+---
 
 ## Video Demo
 
