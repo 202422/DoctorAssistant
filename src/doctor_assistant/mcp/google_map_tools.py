@@ -17,7 +17,7 @@ from typing import List, Optional
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
-from src.doctor_assistant.mcp.google_map_client import get_google_maps_client
+from .google_map_client import get_google_maps_client
 
 
 # =============================================================================

@@ -14,7 +14,7 @@ Note: All operations are READ-ONLY for patient data safety.
 
 from langchain_core.tools import Tool
 
-from src.doctor_assistant.mcp.neon_client import get_neon_client
+from .neon_client import get_neon_client
 
 
 # =============================================================================

@@ -1,11 +1,11 @@
 from langchain_core.tools import StructuredTool
 
-from src.doctor_assistant.tools.coordinates_finder import (
+from .coordinates_finder import (
     get_coordinates_batch,
     CoordinatesBatchInput,
 )
 
-from src.doctor_assistant.tools.distance_computer import (
+from .distance_computer import (
     StreetDistanceInput,
     street_distance_osrm,
 )

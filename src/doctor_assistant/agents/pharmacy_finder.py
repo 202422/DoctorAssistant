@@ -8,7 +8,7 @@ from ..prompts import PHARMACY_SYSTEM_PROMPT   # ← UPDATE THIS PROMPT (see bel
 from ..config import get_llm
 from ..mcp import google_map_tools
 from ..state import State 
-from src.doctor_assistant.tools.pharmacy_tools import non_mcp_tools
+from ..tools.pharmacy_tools import non_mcp_tools
 
 # ============================================================================
 # ERROR HANDLING MIDDLEWARE (kept exactly as you had it)
