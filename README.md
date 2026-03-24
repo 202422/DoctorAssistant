@@ -2,8 +2,7 @@
 
 
 Doctor Assistant is a **Multi-Agent System (MAS)** built with **LangGraph/LangChain** that provides
-AI-powered medical symptom analysis and preliminary diagnosis. It orchestrates multiple specialized agents working together to analyze patient symptoms, retrieve medical history, and generate
-comprehensive medical assessments.
+AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy search. It orchestrates multiple specialized agents working together.
 
 
 ![](/src/doctor_assistant/doctor_assistant_graph.png)
