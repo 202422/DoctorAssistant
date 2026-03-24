@@ -216,16 +216,24 @@ DoctorAssistant/
 │   └── doctor_assistant/       # Main package
 │       ├── agents/             # Specialized agents (planner, supervisor, specialists)
 │       ├── config/             # Configuration and settings
-│       ├── knowledge_bases/    # RAG vector stores
+│       ├── knowledge_bases/    # RAG vector store loaders
 │       ├── mcp/                # MCP client connections
+│       ├── prompts/            # Agent prompt templates
+│       ├── state/              # Graph state definitions
 │       ├── tools/              # Agent tools
+│       ├── utils/              # Helper utilities
 │       ├── app.py              # Gradio web interface
 │       └── graph.py            # LangGraph workflow
-├── tests/                      # Unit and integration tests
+├── tests/
+│   ├── unit/                   # Unit tests
+│   └── integration/            # Integration tests
 ├── data/
-│   ├── knowledge_bases/        # Medical PDF documents
+│   ├── knowledge_bases/        # Medical PDF documents & vectorstores
 │   └── samples/                # Sample patient data
 ├── docs/                       # Documentation
+│   └── images/                 # Architecture diagrams
+├── docker/                     # Docker configuration
+├── scripts/                    # Setup and utility scripts
 ├── .env.example                # Environment template
 ├── pyproject.toml              # Project configuration
 └── README.md
