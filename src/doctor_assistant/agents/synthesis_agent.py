@@ -5,7 +5,7 @@ from ..state import State
 from ..prompts import SYNTHESIS_PROMPT
 from ..config import get_llm
 
-llm = get_llm(temperature=0.3, model="gpt-4.1-nano")  
+llm = get_llm(temperature=0.3, model="gpt-5.4-mini")  
 def synthesis_agent(state: State):
     system_prompt = SYNTHESIS_PROMPT   # ← use the constant above
     
