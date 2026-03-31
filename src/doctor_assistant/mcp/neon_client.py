@@ -1,265 +1,170 @@
-"""Neon PostgreSQL MCP Client via Smithery — fully synchronous implementation."""
+"""
+Neon PostgreSQL MCP Client Module for Doctor Assistant Multi-Agent System.
 
-import json
-import time
-import logging
+Provides async access to Neon PostgreSQL services via Smithery MCP,
+using the langchain-mcp-adapters library (MultiServerMCPClient).
+
+The entire JSON-RPC 2.0 / Streamable HTTP transport layer is now handled
+transparently by the MCP SDK — no manual HTTP wiring needed.
+
+Services available through this client:
+- run_sql: Execute SQL queries against the Neon database
+- run_sql_transaction: Execute multiple SQL statements as a transaction
+- get_database_tables: List available tables
+- describe_table_schema: Inspect table column definitions
+- get_connection_string: Retrieve the database connection string
+"""
+
+import asyncio
+from typing import Optional
+
 import httpx
-from typing import Optional, List
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 
 from ..utils import get_logger
 from ..config import settings
 
+
 logger = get_logger(__name__)
 
 
-# ============================================================
-# SMITHERY MCP CLIENT (sync)
-# ============================================================
+# =============================================================================
+# HTTPX CLIENT FACTORY (SSL bypass for corporate proxy)
+# =============================================================================
 
-class NeonMCPClient:
-    """Synchronous client for Neon PostgreSQL via Smithery MCP.
-
-    The environment variables for the Smithery credentials were renamed to
-    ``NEON_SMITHERY_API_KEY`` and ``NEON_SMITHERY_MCP_URL``; the settings
-    module still exposes the original names for backwards compatibility.
+def no_ssl_verify_factory(
+    headers: dict[str, str] | None = None,
+    timeout: httpx.Timeout | None = None,
+    auth: httpx.Auth | None = None,
+) -> httpx.AsyncClient:
     """
+    Factory that creates an httpx.AsyncClient with SSL verification disabled.
 
-    def __init__(self):
-        # prefer the new NEON_SMITHERY_* values, fall back to legacy names
-        self.base_url = getattr(settings, "NEON_SMITHERY_MCP_URL", None) or settings.SMITHERY_MCP_URL
-        self.api_key = getattr(settings, "NEON_SMITHERY_API_KEY", None) or settings.SMITHERY_API_KEY
-        self.project_id = settings.NEON_PROJECT_ID
-        self.branch_id = getattr(settings, "NEON_BRANCH_ID", None)
-        self.database_name = getattr(settings, "NEON_DATABASE_NAME", "neondb")
+    Required because the corporate proxy re-signs HTTPS traffic with an
+    internal CA certificate not trusted by Python's certifi bundle.
 
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Accept": "application/json, text/event-stream",
-            "Content-Type": "application/json",
-        }
+    Matches the McpHttpClientFactory protocol expected by the MCP session layer.
+    """
+    return httpx.AsyncClient(
+        verify=False,
+        headers=headers,
+        timeout=timeout,
+        auth=auth,
+    )
 
-        self.logger = logging.getLogger(__name__)
 
-        # Persistent synchronous HTTP client
-        self._client = httpx.Client(
-            timeout=httpx.Timeout(
-               connect=15.0,  
-        read=10.0,    
-        write=10.0,    
-        pool=5.0       
-            ),
-            limits=httpx.Limits(
-                max_connections=10,
-                max_keepalive_connections=5
+# =============================================================================
+# RETRY INTERCEPTOR
+# =============================================================================
+
+async def retry_interceptor(
+    request: MCPToolCallRequest,
+    handler,
+    max_retries: int = 2,
+    delay: float = 1.0,
+):
+    """
+    Retry failed MCP tool calls with exponential backoff.
+
+    Args:
+        request:     The MCP tool call request.
+        handler:     The next handler in the interceptor chain.
+        max_retries: Number of retry attempts (default: 2).
+        delay:       Base delay in seconds between retries (default: 1.0).
+    """
+    last_error: Optional[Exception] = None
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(
+                f"🔧 Calling Neon MCP tool: {request.name} "
+                f"(attempt {attempt + 1}/{max_retries})"
             )
-        )
+            return await handler(request)
 
-    def __del__(self):
-        """Close HTTP client on garbage collection."""
-        try:
-            self._client.close()
-        except Exception:
-            pass
-
-    # -----------------------------
-    # SSE PARSING
-    # -----------------------------
-
-    def parse_sse_json(self, response_text: str):
-        """Extract JSON from SSE-style MCP response."""
-        for line in response_text.splitlines():
-            line = line.strip()
-            if line.startswith("data:"):
-                json_part = line[len("data:"):].strip()
-                try:
-                    return json.loads(json_part)
-                except json.JSONDecodeError:
-                    return json_part
-        return response_text
-
-    # -----------------------------
-    # MCP TOOL CALL (sync) - WITH RETRY
-    # -----------------------------
-
-    def call_tool(self, tool_name: str, arguments: dict, max_retries: int = 2):
-        """Call MCP tool with retry logic for timeout errors."""
-        last_error = None
-        
-        for attempt in range(max_retries):
-            try:
-                self.logger.info(f"🔧 Calling MCP tool: {tool_name} (attempt {attempt + 1}/{max_retries})")
-
-                payload = {
-                    "jsonrpc": "2.0",
-                    "id": str(time.time()),
-                    "method": "tools/call",
-                    "params": {"name": tool_name, "arguments": arguments},
-                }
-
-                response = self._client.post(
-                    self.base_url,
-                    headers=self.headers,
-                    json=payload
-                )
-
-                self.logger.debug(f"STATUS: {response.status_code}")
-                self.logger.debug(f"RAW RESPONSE: {response.text[:1000]}")
-
-                if response.status_code != 200:
-                    raise Exception(f"MCP call failed: {response.status_code} - {response.text}")
-
-                result = self.parse_sse_json(response.text)
-
-                if isinstance(result, dict) and "error" in result:
-                    raise Exception(result["error"])
-
-                inner = result.get("result", {})
-                content = inner.get("content", [])
-                if content and isinstance(content[0], dict) and content[0].get("type") == "text":
-                    text = content[0]["text"]
-                    try:
-                        return json.loads(text)
-                    except json.JSONDecodeError:
-                        return text
-                return inner
-                
-            except httpx.ReadTimeout as e:
-                last_error = e
-                if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s
-                    self.logger.warning(f"⚠️ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                else:
-                    self.logger.error(f"❌ All {max_retries} attempts failed for {tool_name}")
-                    # Return empty result instead of crashing
-                    return []
-            except Exception as e:
-                self.logger.error(f"❌ Error calling {tool_name}: {str(e)}")
-                if attempt < max_retries - 1:
-                    time.sleep(1)
-                else:
-                    raise
-        
-        # If we get here, all retries failed
-        self.logger.error(f"❌ Failed after {max_retries} attempts: {last_error}")
-        return []
-
-    # -----------------------------
-    # LIST TOOLS (sync)
-    # -----------------------------
-
-    def list_tools(self) -> List[dict]:
-        self.logger.info("📋 Listing available MCP tools...")
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": str(time.time()),
-            "method": "tools/list",
-            "params": {},
-        }
-
-        try:
-            response = self._client.post(
-                self.base_url,
-                headers=self.headers,
-                json=payload
+        except Exception as exc:
+            last_error = exc
+            wait_time = delay * (2 ** attempt)  # Exponential backoff
+            logger.warning(
+                f"Tool '{request.name}' failed (attempt {attempt + 1}): {exc}. "
+                f"Retrying in {wait_time}s..."
             )
+            if attempt < max_retries - 1:
+                await asyncio.sleep(wait_time)
 
-            if response.status_code != 200:
-                self.logger.error(f"❌ Failed to list tools: {response.status_code}")
-                return []
-
-            result = self.parse_sse_json(response.text)
-            tools = result.get("result", {}).get("tools", [])
-            self.logger.info(f"✅ Found {len(tools)} tools")
-            return tools
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to list tools: {e}")
-            return []
-
-    # ============================================================
-    # SQL EXECUTION (sync)
-    # ============================================================
-
-    def run_sql(self, query: str) -> list[dict]:
-        logger.info(f"🔍 Executing SQL: {query[:100]}...")
-
-        arguments = {
-            "sql": query,
-            "projectId": self.project_id,
-            "databaseName": self.database_name
-        }
-        if self.branch_id:
-            arguments["branchId"] = self.branch_id
-
-        try:
-            result = self.call_tool("run_sql", arguments)
-            logger.info("✅ Query executed successfully")
-            return result if isinstance(result, list) else []
-        except Exception as e:
-            logger.error(f"❌ SQL execution failed: {e}")
-            return []
-
-    def run_sql_transaction(self, queries: list[str]) -> list[dict]:
-        logger.info(f"🔄 Executing transaction with {len(queries)} queries...")
-
-        arguments = {
-            "sqlStatements": queries,
-            "projectId": self.project_id,
-            "databaseName": self.database_name
-        }
-        if self.branch_id:
-            arguments["branchId"] = self.branch_id
-
-        try:
-            result = self.call_tool("run_sql_transaction", arguments)
-            logger.info("✅ Transaction completed successfully")
-            return result
-        except Exception as e:
-            logger.error(f"❌ Transaction failed: {e}")
-            return []
-
-    # ============================================================
-    # DATABASE INTROSPECTION (sync)
-    # ============================================================
-
-    def get_tables(self) -> list[str]:
-        logger.info("📋 Fetching database tables...")
-        arguments = {"projectId": self.project_id, "databaseName": self.database_name}
-        if self.branch_id:
-            arguments["branchId"] = self.branch_id
-        return self.call_tool("get_database_tables", arguments)
-
-    def describe_table(self, table_name: str) -> dict:
-        logger.info(f"📋 Describing table: {table_name}")
-        arguments = {
-            "tableName": table_name,
-            "projectId": self.project_id,
-            "databaseName": self.database_name
-        }
-        if self.branch_id:
-            arguments["branchId"] = self.branch_id
-        return self.call_tool("describe_table_schema", arguments)
-
-    def get_connection_string(self) -> str:
-        logger.info("🔌 Getting connection string...")
-        arguments = {"projectId": self.project_id, "databaseName": self.database_name}
-        if self.branch_id:
-            arguments["branchId"] = self.branch_id
-        return self.call_tool("get_connection_string", arguments)
+    raise last_error  # type: ignore[misc]
 
 
-# ============================================================
-# GLOBAL CLIENT INSTANCE
-# ============================================================
+# =============================================================================
+# NEON MCP CLIENT FACTORY
+# =============================================================================
 
-_client: Optional[NeonMCPClient] = None
+def build_neon_mcp_client() -> MultiServerMCPClient:
+    """
+    Build a MultiServerMCPClient configured for the Neon PostgreSQL Smithery MCP.
+
+    Transport: streamable_http — Smithery Connect uses POST-based Streamable
+               HTTP, NOT SSE (GET-based). Using 'sse' causes a 405 error.
+    Auth:      Bearer token passed via the 'headers' field.
+    Retry:     Handled by retry_interceptor.
+    SSL:       no_ssl_verify_factory bypasses corporate proxy cert verification.
+
+    Returns:
+        A ready-to-use MultiServerMCPClient instance.
+    """
+    return MultiServerMCPClient(
+        {
+            "neon": {
+                # ✅ Smithery Connect endpoint uses Streamable HTTP (POST),
+                # NOT SSE (GET). 'sse' causes 405 Method Not Allowed.
+                "transport": "streamable_http",
+                "url": settings.NEON_SMITHERY_MCP_URL,
+                "headers": {
+                    "Authorization": f"Bearer {settings.NEON_SMITHERY_API_KEY}",
+                },
+                "httpx_client_factory": no_ssl_verify_factory,
+            }
+        },
+        tool_interceptors=[retry_interceptor],
+    )
 
 
-def get_neon_client() -> NeonMCPClient:
-    """Get or create global Neon MCP client."""
-    global _client
-    if _client is None:
-        _client = NeonMCPClient()
-    return _client
+# =============================================================================
+# SINGLETON ACCESS
+# =============================================================================
+
+_neon_client: Optional[MultiServerMCPClient] = None
+
+
+def get_neon_client() -> MultiServerMCPClient:
+    """
+    Get the singleton MultiServerMCPClient for Neon PostgreSQL.
+
+    Creates the client on first call, reuses on subsequent calls.
+    Used by neon_tools.py to load LangChain-compatible tools.
+
+    Returns:
+        Shared MultiServerMCPClient instance.
+    """
+    global _neon_client
+    if _neon_client is None:
+        _neon_client = build_neon_mcp_client()
+    return _neon_client
+
+
+# =============================================================================
+# MODULE TEST (run directly to verify connection)
+# =============================================================================
+
+async def _test():
+    """Quick smoke-test: load tools and print their names."""
+    client = get_neon_client()
+    tools = await client.get_tools()
+    print(f"✅ Connected. Available tools ({len(tools)}):")
+    for tool in tools:
+        print(f"  - {tool.name}: {tool.description[:80]}")
+
+
+if __name__ == "__main__":
+    asyncio.run(_test())

@@ -1,4 +1,6 @@
 # patient_data_agent.py
+import uuid
+
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.agents.middleware import wrap_tool_call
@@ -57,7 +59,7 @@ def run_patient_data_agent(state: State):
     # - Its own assigned task
     result = patient_data_agent.invoke(
         {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
-        config={"configurable": {"thread_id": "patient_data_thread"}}
+        config={"configurable": {"thread_id": f"patient_data_{uuid.uuid4()}"}}
     )
 
     # Return only the last message (standard LangGraph node pattern)

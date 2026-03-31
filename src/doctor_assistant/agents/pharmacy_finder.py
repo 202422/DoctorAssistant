@@ -1,4 +1,6 @@
 # pharmacy_finder.py
+import uuid
+
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.agents.middleware import wrap_tool_call
@@ -61,7 +63,7 @@ def run_pharmacy_finder_agent(state: State):
     # - Its own assigned task
     result = pharmacy_finder_agent.invoke(
         {"messages": state["messages"]},                     # ← THIS IS THE KEY CHANGE
-        config={"configurable": {"thread_id": "pharmacy_finder_thread"}}
+        config={"configurable": {"thread_id": f"pharmacy_finder_{uuid.uuid4()}"}}
     )
 
     # Return only the last message (standard LangGraph node pattern)
