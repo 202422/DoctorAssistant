@@ -1,225 +1,96 @@
 """
 Google Maps Tools Module for Doctor Assistant Multi-Agent System.
 
-Provides LangChain-compatible tools for the PharmacyFinder agent to
-search for pharmacies and other medical facilities.
+Provides LangChain-compatible tools for the PharmacyFinder agent by
+loading them directly from the Google Maps MCP server via
+langchain-mcp-adapters.
 
-Tools:
+Tools are auto-discovered from the MCP server — no manual StructuredTool
+definitions or Pydantic schemas needed. The MCP server itself advertises:
 - nearby_search: Find places within a radius (lat/lng based)
-- text_search: Find places by text query (e.g., "pharmacies near X")
+- text_search:   Find places by text query (e.g., "pharmacies near X")
 
-Note: Uses StructuredTool + Pydantic schemas to support multiple
-arguments in LangGraph (fixes "Too many arguments" error).
+Usage (async context required):
+    tools = await get_google_map_tools()
+    # Pass `tools` to your LangGraph agent / ToolNode
 """
 
-from typing import List, Optional
+import asyncio
+from typing import List
 
-from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
+from langchain_core.tools import BaseTool
 
 from .google_map_client import get_google_maps_client
+from ..utils import get_logger
+
+
+logger = get_logger(__name__)
 
 
 # =============================================================================
-# PYDANTIC INPUT SCHEMAS
-# =============================================================================
-# These schemas enable LangGraph to correctly parse multi-argument tool calls.
-# Without them, LangGraph throws "Too many arguments to single-input tool".
-
-class NearbySearchInput(BaseModel):
-    """
-    Schema for nearby_search tool.
-    
-    Searches for places within a circular area defined by
-    center coordinates (lat/lng) and radius.
-    """
-    latitude: float = Field(
-        ...,
-        description="Latitude of search center point",
-    )
-    longitude: float = Field(
-        ...,
-        description="Longitude of search center point",
-    )
-    radius: int = Field(
-        ...,
-        description="Search radius in meters (max 50000)",
-    )
-    includedTypes: Optional[List[str]] = Field(
-        None,
-        description="Place types to include (e.g., ['pharmacy', 'hospital'])",
-    )
-    excludedTypes: Optional[List[str]] = Field(
-        None,
-        description="Place types to exclude (e.g., ['cafe'])",
-    )
-    maxResultCount: Optional[int] = Field(
-        10,
-        description="Max results to return (default: 10)",
-    )
-    fieldMask: Optional[str] = Field(
-        None,
-        description="Fields to return (e.g., 'places.displayName,places.formattedAddress')",
-    )
-
-
-class TextSearchInput(BaseModel):
-    """
-    Schema for text_search tool.
-    
-    Searches for places using natural language query
-    (e.g., "pharmacies near Casablanca").
-    """
-    textQuery: str = Field(
-        ...,
-        description="Search query (e.g., 'pharmacies near Casablanca')",
-    )
-    locationBias: Optional[dict] = Field(
-        None,
-        description="Bias results toward location: {'latitude': float, 'longitude': float}",
-    )
-    maxResultCount: Optional[int] = Field(
-        10,
-        description="Max results to return (default: 10)",
-    )
-
-
-# =============================================================================
-# TOOL IMPLEMENTATIONS
+# TOOL LOADER
 # =============================================================================
 
-def nearby_search_tool(
-    latitude: float,
-    longitude: float,
-    radius: int,
-    includedTypes: Optional[List[str]] = None,
-    excludedTypes: Optional[List[str]] = None,
-    maxResultCount: int = 10,
-    fieldMask: Optional[str] = None,
-) -> str:
+async def get_google_map_tools() -> List[BaseTool]:
     """
-    Search for places near a geographic point.
-    
-    Used by PharmacyFinder agent to find pharmacies near
-    a patient's location using coordinates.
-    
+    Load Google Maps tools from the MCP server.
+
+    Connects to the Smithery MCP endpoint and converts all exposed
+    MCP tools into LangChain BaseTool instances, ready to be bound
+    to a LangGraph agent or ToolNode.
+
+    Each tool invocation creates a fresh MCP session (stateless mode),
+    which is the correct behaviour for independent place-search calls.
+
     Returns:
-        JSON string of matching places.
+        List of LangChain-compatible tools (nearby_search, text_search, ...).
+
+    Raises:
+        Exception: If the MCP server is unreachable or returns an error.
     """
     client = get_google_maps_client()
+    tools = await client.get_tools()
 
-    # Build required arguments
-    args = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "radius": radius,
-        "maxResultCount": maxResultCount,
-    }
-
-    print(f"Tool call: nearby_search with args: {args}")
-
-    # Add optional filters if provided
-    if includedTypes:
-        args["includedTypes"] = includedTypes
-    if excludedTypes:
-        args["excludedTypes"] = excludedTypes
-    if fieldMask:
-        args["fieldMask"] = fieldMask
-
-    # Call MCP and return result
-    result = client.call_tool("nearby_search", args)
-    print(f"Tool result: {result}")
-
-    return str(result)
+    logger.info(
+        f"✅ Loaded {len(tools)} Google Maps tool(s) from MCP: "
+        f"{[t.name for t in tools]}"
+    )
+    return tools
 
 
-def text_search_tool(
-    textQuery: str,
-    locationBias: Optional[dict] = None,
-    maxResultCount: int = 10,
-) -> str:
+# =============================================================================
+# CACHED TOOLS (optional helper for LangGraph graph construction)
+# =============================================================================
+
+async def get_google_map_tools_cached() -> List[BaseTool]:
     """
-    Search for places using natural language query.
-    
-    Used by PharmacyFinder agent when patient provides
-    an address or area name instead of coordinates.
-    
+    Load Google Maps tools once and cache them for the process lifetime.
+
+    Use this when you build your LangGraph graph at startup and want to
+    avoid re-fetching the tool list on every agent invocation.
+
     Returns:
-        JSON string of matching places.
+        Cached list of LangChain-compatible tools.
     """
-    client = get_google_maps_client()
-
-    # Build arguments
-    args = {
-        "textQuery": textQuery,
-        "maxResultCount": maxResultCount,
-    }
-
-    # Add location bias if provided (improves relevance)
-    if locationBias:
-        args["locationBias"] = locationBias
-
-    # Call MCP and return result
-    result = client.call_tool("text_search", args)
-
-    return str(result)
+    if not hasattr(get_google_map_tools_cached, "_cache"):
+        get_google_map_tools_cached._cache = await get_google_map_tools()  # type: ignore[attr-defined]
+    return get_google_map_tools_cached._cache  # type: ignore[attr-defined]
 
 
 # =============================================================================
-# TOOL DEFINITIONS (exported for agent binding)
+# MODULE TEST (run directly to verify tools load correctly)
 # =============================================================================
 
-google_map_tools = [
-    # -------------------------------------------------------------------------
-    # NEARBY SEARCH TOOL
-    # -------------------------------------------------------------------------
-    StructuredTool.from_function(
-        func=nearby_search_tool,
-        name="nearby_search",
-        description="""Search for places within a circular area around coordinates.
+async def _test():
+    tools = await get_google_map_tools()
+    for tool in tools:
+        print(f"Tool: {tool.name}")
+        print(f"  Description : {tool.description}")
+        # args_schema can be a dict (Pydantic v2) or a class with .schema() (Pydantic v1)
+        schema = tool.args_schema if isinstance(tool.args_schema, dict) else tool.args_schema.schema()
+        print(f"  Input schema: {schema}")
+        print()
 
-Required parameters:
-- latitude (float): Center point latitude
-- longitude (float): Center point longitude  
-- radius (int): Search radius in meters (max 50000)
 
-Optional parameters:
-- includedTypes (list): Place types to include, e.g., ["pharmacy"]
-- excludedTypes (list): Place types to exclude, e.g., ["cafe"]
-- maxResultCount (int): Max results (default: 10)
-- fieldMask (str): Fields to return
-
-Example:
-{
-    "latitude": 37.7749,
-    "longitude": -122.4194,
-    "radius": 1000,
-    "includedTypes": ["pharmacy"],
-    "maxResultCount": 5
-}""",
-        args_schema=NearbySearchInput,
-    ),
-
-    # -------------------------------------------------------------------------
-    # TEXT SEARCH TOOL
-    # -------------------------------------------------------------------------
-    StructuredTool.from_function(
-        func=text_search_tool,
-        name="text_search",
-        description="""Search for places using a text query.
-
-Required parameters:
-- textQuery (str): Natural language search query
-
-Optional parameters:
-- locationBias (dict): Bias toward location {"latitude": float, "longitude": float}
-- maxResultCount (int): Max results (default: 10)
-
-Example:
-{
-    "textQuery": "pharmacies near Casablanca",
-    "maxResultCount": 5
-}""",
-        args_schema=TextSearchInput,
-    ),
-]
+if __name__ == "__main__":
+    asyncio.run(_test())
