@@ -10,13 +10,13 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
 ## Table of Contents
 
 - [Video Demo](#video-demo)
+- [Project Structure](#project-structure)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Running the Application](#running-the-application)
-- [Project Structure](#project-structure)
 - [License](#license)
 
 ---
@@ -24,6 +24,38 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
 ## Video Demo
 
 [Watch the demo video](https://drive.google.com/file/d/1xdEF-TDnVvLbRdakQA4jO5fB_Z5fvROG/view?usp=sharing)
+
+## Project Structure
+
+```
+DoctorAssistant/
+├── src/
+│   └── doctor_assistant/       # Main package
+│       ├── agents/             # Specialized agents (planner, supervisor, specialists)
+│       ├── config/             # Configuration and settings
+│       ├── knowledge_bases/    # RAG vector store loaders
+│       ├── mcp/                # MCP client connections
+│       ├── prompts/            # Agent prompt templates
+│       ├── state/              # Graph state definitions
+│       ├── tools/              # Agent tools
+│       ├── utils/              # Helper utilities
+│       ├── app.py              # Gradio web interface
+│       └── graph.py            # LangGraph workflow
+├── tests/
+│   ├── unit/                   # Unit tests
+│   └── integration/            # Integration tests
+├── data/
+│   ├── knowledge_bases/        # Medical PDF documents & vectorstores
+│   └── samples/                # Sample patient data
+├── docs/                       # Documentation
+│   └── images/                 # Architecture diagrams
+├── docker/                     # Docker configuration
+├── scripts/                    # Setup and utility scripts
+├── .env.example                # Environment template
+├── pyproject.toml              # Project configuration
+└── README.md
+```
+
 
 <h2>Tech Stack</h2>
 
@@ -206,37 +238,6 @@ python -m doctor_assistant.app
 
 The application will start at **http://localhost:7860**
 
-
-## Project Structure
-
-```
-DoctorAssistant/
-├── src/
-│   └── doctor_assistant/       # Main package
-│       ├── agents/             # Specialized agents (planner, supervisor, specialists)
-│       ├── config/             # Configuration and settings
-│       ├── knowledge_bases/    # RAG vector store loaders
-│       ├── mcp/                # MCP client connections
-│       ├── prompts/            # Agent prompt templates
-│       ├── state/              # Graph state definitions
-│       ├── tools/              # Agent tools
-│       ├── utils/              # Helper utilities
-│       ├── app.py              # Gradio web interface
-│       └── graph.py            # LangGraph workflow
-├── tests/
-│   ├── unit/                   # Unit tests
-│   └── integration/            # Integration tests
-├── data/
-│   ├── knowledge_bases/        # Medical PDF documents & vectorstores
-│   └── samples/                # Sample patient data
-├── docs/                       # Documentation
-│   └── images/                 # Architecture diagrams
-├── docker/                     # Docker configuration
-├── scripts/                    # Setup and utility scripts
-├── .env.example                # Environment template
-├── pyproject.toml              # Project configuration
-└── README.md
-```
 
 ## License
 
