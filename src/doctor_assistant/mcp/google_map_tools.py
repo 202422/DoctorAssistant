@@ -189,7 +189,7 @@ async def _test():
         print(f"Tool : {tool.name}")
         print(f"  Type        : {type(tool).__name__}")
         print(f"  Description : {tool.description}")
-        schema = tool.args_schema if isinstance(tool.args_schema, dict) else tool.args_schema.schema()
+        schema = tool.args_schema if isinstance(tool.args_schema, dict) else tool.args_schema.model_json_schema()
         print(f"  Input schema: {schema}")
         print()
 

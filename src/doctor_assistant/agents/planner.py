@@ -10,7 +10,6 @@ from ..config import get_llm
 llm = get_llm(temperature=0, model="gpt-5.2")  # deterministic output for planning
 
 
-
 # ====================== PLANNER NODE ======================
 def planner_agent(state: State):
     """Analyzes the request and outputs a clear, human-readable plan"""
@@ -27,7 +26,7 @@ def planner_agent(state: State):
     plan_text = f"**Medical Query Analysis**\n{plan.analysis}\n\n**Step-by-Step Plan**\n\n"
     
     for step in plan.steps:
-        agent_name = step.agent.replace("_", " ").title() + " Agent"
+        agent_name = step.agent.replace("_", " ").title()
         plan_text += f"{step.step_number}. **{agent_name}**\n"
         plan_text += f"   Task: {step.task}\n"
         plan_text += f"   Purpose: {step.purpose}\n\n"
