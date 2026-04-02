@@ -17,6 +17,7 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Running the Application](#running-the-application)
+  - [Running with Docker](#running-with-docker)
 - [License](#license)
 
 ---
@@ -237,6 +238,33 @@ python -m doctor_assistant.app
 ```
 
 The application will start at **http://localhost:7860**
+
+### Running with Docker
+
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+1. **Set up your `.env` file** (same as above — Docker reads it at runtime, it is never baked into the image)
+
+2. **Build the image**
+   ```bash
+   docker compose build
+   ```
+
+3. **Start the application**
+   ```bash
+   docker compose up
+   ```
+
+   The app will be available at **http://localhost:7860**
+
+   On the first run, the HuggingFace embedding model (~90 MB) is downloaded automatically and cached in a Docker volume — subsequent starts are instant.
+
+4. **Stop the application**
+   ```bash
+   docker compose down
+   ```
+
+> **Note:** Your `.env` file stays on your machine and is never included in the image. Anyone running the project needs to supply their own `.env` based on `.env.example`.
 
 
 ## License
