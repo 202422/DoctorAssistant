@@ -17,7 +17,6 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
   - [Configuration](#configuration)
   - [Option 1 — Local Setup](#option-1--local-setup)
   - [Option 2 — Docker](#option-2--docker)
-- [License](#license)
 
 ---
 
