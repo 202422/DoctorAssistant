@@ -14,10 +14,9 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
   - [Configuration](#configuration)
-  - [Running the Application](#running-the-application)
-  - [Running with Docker](#running-with-docker)
+  - [Option 1 — Local Setup](#option-1--local-setup)
+  - [Option 2 — Docker](#option-2--docker)
 - [License](#license)
 
 ---
@@ -177,47 +176,18 @@ DoctorAssistant/
 
 ### Prerequisites
 
-- **Python 3.12+** - [Download Python](https://www.python.org/downloads/)
 - **Git** - [Download Git](https://git-scm.com/downloads)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/202422/DoctorAssistant.git
-   cd DoctorAssistant
-   ```
-
-2. **Create and activate a virtual environment**
-   ```bash
-   # Create virtual environment
-   python -m venv .doctor_venv
-
-   # Activate (Windows)
-   .doctor_venv\Scripts\activate
-
-   # Activate (macOS/Linux)
-   source .doctor_venv/bin/activate
-   ```
-
-3. **Install the package**
-   ```bash
-   # Install in editable mode
-   pip install -e .
-
-   # Or with development dependencies (testing, linting)
-   pip install -e ".[dev]"
-   ```
 
 ### Configuration
 
-1. **Set up environment variables**
+Regardless of how you run the app, you need to configure your environment variables first.
+
+1. **Copy the example file**
    ```bash
-   # Copy the example file
    cp .env.example .env
    ```
 
-2. **Edit `.env` and fill in your API keys:**
+2. **Edit `.env` and fill in your credentials:**
 
    | Variable | Description | Where to get it |
    |----------|-------------|-----------------|
@@ -227,39 +197,71 @@ DoctorAssistant/
    | `LANGSMITH_API_KEY` | LangSmith tracing (optional) | [smith.langchain.com](https://smith.langchain.com/) |
    | `NEON_DATABASE_URL` | PostgreSQL connection string | [neon.tech](https://neon.tech/) |
 
-### Running the Application
+---
 
-```bash
-# Option 1: Using the CLI command
-doctor-assistant
+### Option 1 — Local Setup
 
-# Option 2: Using Python module
-python -m doctor_assistant.app
-```
+**Additional prerequisites:** [Python 3.12+](https://www.python.org/downloads/)
 
-The application will start at **http://localhost:7860**
-
-### Running with Docker
-
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
-
-1. **Set up your `.env` file** (same as above — Docker reads it at runtime, it is never baked into the image)
-
-2. **Build the image**
+1. **Clone the repository**
    ```bash
-   docker compose build
+   git clone https://github.com/202422/DoctorAssistant.git
+   cd DoctorAssistant
    ```
 
-3. **Start the application**
+2. **Create and activate a virtual environment**
    ```bash
+   python -m venv .doctor_venv
+
+   # Windows
+   .doctor_venv\Scripts\activate
+
+   # macOS / Linux
+   source .doctor_venv/bin/activate
+   ```
+
+3. **Install the package**
+   ```bash
+   pip install -e .
+
+   # With development dependencies (testing, linting)
+   pip install -e ".[dev]"
+   ```
+
+4. **Run the application**
+   ```bash
+   # Using the CLI command
+   doctor-assistant
+
+   # Or via Python module
+   python -m doctor_assistant.app
+   ```
+
+   The app will be available at **http://localhost:7860**
+
+---
+
+### Option 2 — Docker
+
+**Additional prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/202422/DoctorAssistant.git
+   cd DoctorAssistant
+   ```
+
+2. **Build and start the application**
+   ```bash
+   docker compose build
    docker compose up
    ```
 
    The app will be available at **http://localhost:7860**
 
-   On the first run, the HuggingFace embedding model (~90 MB) is downloaded automatically and cached in a Docker volume — subsequent starts are instant.
+   > On the first run, the HuggingFace embedding model (~90 MB) is downloaded automatically and cached — subsequent starts are instant.
 
-4. **Stop the application**
+3. **Stop the application**
    ```bash
    docker compose down
    ```
