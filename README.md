@@ -180,14 +180,20 @@ DoctorAssistant/
 
 ### Configuration
 
-Regardless of how you run the app, you need to configure your environment variables first.
+Regardless of how you run the app, start by cloning the repository and configuring your environment variables.
 
-1. **Copy the example file**
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/202422/DoctorAssistant.git
+   cd DoctorAssistant
+   ```
+
+2. **Copy the example file**
    ```bash
    cp .env.example .env
    ```
 
-2. **Edit `.env` and fill in your credentials:**
+3. **Edit `.env` and fill in your credentials:**
 
    | Variable | Description | Where to get it |
    |----------|-------------|-----------------|
@@ -203,13 +209,7 @@ Regardless of how you run the app, you need to configure your environment variab
 
 **Additional prerequisites:** [Python 3.12+](https://www.python.org/downloads/)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/202422/DoctorAssistant.git
-   cd DoctorAssistant
-   ```
-
-2. **Create and activate a virtual environment**
+1. **Create and activate a virtual environment**
    ```bash
    python -m venv .doctor_venv
 
@@ -220,7 +220,7 @@ Regardless of how you run the app, you need to configure your environment variab
    source .doctor_venv/bin/activate
    ```
 
-3. **Install the package**
+2. **Install the package**
    ```bash
    pip install -e .
 
@@ -228,7 +228,7 @@ Regardless of how you run the app, you need to configure your environment variab
    pip install -e ".[dev]"
    ```
 
-4. **Run the application**
+3. **Start the application**
    ```bash
    # Using the CLI command
    doctor-assistant
@@ -245,13 +245,7 @@ Regardless of how you run the app, you need to configure your environment variab
 
 **Additional prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/202422/DoctorAssistant.git
-   cd DoctorAssistant
-   ```
-
-2. **Build and start the application**
+1. **Build and start the application**
    ```bash
    docker compose build
    docker compose up
@@ -261,7 +255,7 @@ Regardless of how you run the app, you need to configure your environment variab
 
    > On the first run, the HuggingFace embedding model (~90 MB) is downloaded automatically and cached — subsequent starts are instant.
 
-3. **Stop the application**
+2. **Stop the application**
    ```bash
    docker compose down
    ```
