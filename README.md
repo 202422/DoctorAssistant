@@ -262,7 +262,3 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 > **Note:** Your `.env` file stays on your machine and is never included in the image. Anyone running the project needs to supply their own `.env` based on `.env.example`.
 
-
-## License
-
-This project is licensed under the MIT License.
