@@ -1,4 +1,22 @@
 # =============================================================================
+# Doctor Assistant — Dockerfile
+#
+# Multi-agent AI medical assistant built with LangGraph + Gradio.
+# Exposes a web UI on port 7860.
+#
+# Two-stage build:
+#   - builder : installs all Python dependencies (including C-extension
+#               wheels like faiss-cpu and psycopg2-binary) using build tools
+#               that are NOT needed at runtime.
+#   - runtime : clean image with only the installed packages, source code,
+#               and runtime system libraries — no compilers or headers.
+#
+# Usage:
+#   docker compose build
+#   docker compose up
+# =============================================================================
+
+# =============================================================================
 # Stage 1 — Builder
 # Installs all Python dependencies into /build/venv so the runtime stage
 # gets a clean, minimal layer without build tooling.

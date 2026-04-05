@@ -1,6 +1,38 @@
 # =============================================================================
 # Doctor Assistant — Docker Compose
-# Single service; Neon DB is cloud-hosted — no local database container needed.
+#
+# Orchestrates the Doctor Assistant multi-agent medical system as a single
+# containerised service. The application exposes a Gradio web UI on port 7860
+# and connects to cloud-hosted external services (Neon PostgreSQL, Google Maps
+# MCP via Smithery, OpenAI) — no local database container is needed.
+#
+# Architecture:
+#   ┌─────────────────────────────────┐
+#   │  doctor-assistant (this file)   │  port 7860
+#   │  ─────────────────────────────  │
+#   │  Gradio UI → LangGraph agents   │──► OpenAI API
+#   │  FAISS vectorstores (bind-mount)│──► Neon PostgreSQL (cloud, via MCP)
+#   │  HuggingFace model (named vol)  │──► Google Maps (cloud, via MCP)
+#   └─────────────────────────────────┘
+#
+# Key decisions:
+#   - env_file      : all secrets (API keys, DB URLs) are injected from .env
+#                     at runtime — never baked into the image.
+#   - ./data mount  : pre-built FAISS vectorstores on the host are mounted
+#                     directly, so the app starts instantly without rebuilding
+#                     indexes from PDFs.
+#   - hf_cache vol  : the HuggingFace embedding model (all-MiniLM-L6-v2,
+#                     ~90 MB) is downloaded once on first run and reused
+#                     across container restarts via a named Docker volume.
+#   - restart policy: the container restarts automatically on crash or host
+#                     reboot, but not when you explicitly run `docker compose down`.
+#
+# Usage:
+#   docker compose build        # build the image (run once or after code changes)
+#   docker compose up           # start the service (add -d to run in background)
+#   docker compose logs -f      # stream live logs
+#   docker compose down         # stop and remove the container
+#   docker compose down -v      # also delete the hf_cache volume (forces model re-download)
 # =============================================================================
 services:
   doctor-assistant:

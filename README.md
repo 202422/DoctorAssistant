@@ -45,14 +45,18 @@ DoctorAssistant/
 │   ├── unit/                   # Unit tests
 │   └── integration/            # Integration tests
 ├── data/
-│   ├── knowledge_bases/        # Medical PDF documents & vectorstores
+│   ├── knowledge_bases/        # Medical PDF documents & FAISS vectorstores
 │   └── samples/                # Sample patient data
 ├── docs/                       # Documentation
 │   └── images/                 # Architecture diagrams
-├── docker/                     # Docker configuration
 ├── scripts/                    # Setup and utility scripts
-├── .env.example                # Environment template
+├── Dockerfile                  # Multi-stage Docker build
+├── docker-compose.yml          # Docker Compose service definition
+├── .dockerignore               # Docker build context exclusions
+├── .env.example                # Environment variables template
 ├── pyproject.toml              # Project configuration
+├── requirements.txt            # Python dependencies
+├── Makefile                    # Utility commands
 └── README.md
 ```
 
