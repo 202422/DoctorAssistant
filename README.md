@@ -17,7 +17,6 @@ AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy s
   - [Configuration](#configuration)
   - [Option 1 — Local Setup](#option-1--local-setup)
   - [Option 2 — Docker](#option-2--docker)
-- [License](#license)
 
 ---
 
@@ -266,7 +265,3 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 > **Note:** Your `.env` file stays on your machine and is never included in the image. Anyone running the project needs to supply their own `.env` based on `.env.example`.
 
-
-## License
-
-This project is licensed under the MIT License.
