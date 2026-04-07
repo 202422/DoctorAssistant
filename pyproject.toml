@@ -41,6 +41,7 @@ dependencies = [
     # Vector Stores & Embeddings
     "chromadb>=0.5.0",
     "faiss-cpu>=1.8.0",
+    "langchain-classic>=1.0.0",  # ContextualCompressionRetriever + CrossEncoderReranker
 
     # MCP (Model Context Protocol)
     "mcp>=1.0.0",

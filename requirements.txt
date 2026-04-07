@@ -20,6 +20,11 @@ faiss-cpu>=1.8.0
 # faiss-gpu>=1.8.0  # Uncomment if using GPU
 
 # -----------------------------
+# RAG Reranking
+# -----------------------------
+langchain-classic>=1.0.0  # ContextualCompressionRetriever + CrossEncoderReranker
+
+# -----------------------------
 # MCP (Model Context Protocol)
 # -----------------------------
 mcp>=1.0.0

@@ -20,7 +20,6 @@ You MUST read and use the following information that is ALWAYS present in the co
 ## Retrieval Rules (MANDATORY)
 
 * Always retrieve supporting evidence from medical literature before forming conclusions, UNLESS the exact information is already explicitly provided in the patient data or previous messages.
-* You may retrieve multiple times if necessary.
 * Prioritize peer-reviewed studies, cardiology guidelines (ACC/AHA, ESC, etc.), and trusted medical sources.
 * Never fabricate medical evidence, drug data, or dosages.
 * If evidence is insufficient for the assigned task, return a lower confidence level rather than guessing.
@@ -115,7 +114,6 @@ You MUST read and use the following information that is ALWAYS present in the co
 ## Retrieval Rules (MANDATORY)
 
 * Always retrieve supporting evidence from medical literature before forming conclusions, UNLESS the exact information is already explicitly provided in the patient data or previous messages.
-* You may retrieve multiple times if necessary.
 * Prioritize peer-reviewed studies, neurology guidelines (AAN, EFNS/ESO, NICE, etc.), and trusted medical sources.
 * Never fabricate medical evidence, drug data, or dosages.
 * If evidence is insufficient for the assigned task, return a lower confidence level rather than guessing.

@@ -2,10 +2,15 @@
 Cardiovascular Knowledge Base Module for Doctor Assistant Multi-Agent System.
 
 Provides RAG (Retrieval-Augmented Generation) capabilities for the
-CardiovascularDiagnosis agent using FAISS vector similarity search.
+CardiovascularDiagnosis agent using a two-stage retrieval pipeline:
+
+  Stage 1 — FAISS vector similarity search retrieves the top-N candidates.
+  Stage 2 — CrossEncoder reranker scores each candidate against the query
+             and returns the top-k most relevant chunks.
 
 Source: "Heart Disease Diagnosis and Therapy" PDF
 Vector Store: FAISS (Facebook AI Similarity Search)
+Reranker: BAAI/bge-reranker-base (HuggingFace CrossEncoder)
 """
 
 from functools import lru_cache
@@ -13,6 +18,9 @@ from pathlib import Path
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
+from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+from langchain_classic.retrievers import ContextualCompressionRetriever
+from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from ..config import get_embeddings
@@ -119,20 +127,33 @@ def get_vectorstore() -> FAISS:
 # RETRIEVER INTERFACE
 # =============================================================================
 
-def get_retriever(k: int = 4):
+def get_retriever(k: int = 4, fetch_k: int = 20):
     """
-    Get a retriever for the CardiovascularDiagnosis agent.
-    
-    Used by the agent to fetch relevant medical context
-    before generating diagnosis responses.
-    
+    Get a two-stage retriever for the CardiovascularDiagnosis agent.
+
+    Stage 1 — FAISS retrieves `fetch_k` candidates via vector similarity.
+    Stage 2 — CrossEncoder reranker scores each candidate against the query
+               and returns the top `k` most relevant chunks.
+
+    Using more candidates in stage 1 (fetch_k=20) gives the reranker enough
+    material to work with, while keeping the final context concise (k=4).
+
     Args:
-        k: Number of similar documents to retrieve (default: 4).
-    
+        k:       Number of chunks to return after reranking (default: 4).
+        fetch_k: Number of candidates retrieved by FAISS before reranking (default: 20).
+
     Returns:
-        LangChain retriever configured for top-k similarity search.
+        ContextualCompressionRetriever with CrossEncoder reranking.
     """
-    return get_vectorstore().as_retriever(search_kwargs={"k": k})
+    base_retriever = get_vectorstore().as_retriever(search_kwargs={"k": fetch_k})
+    reranker = CrossEncoderReranker(
+        model=HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base"),
+        top_n=k,
+    )
+    return ContextualCompressionRetriever(
+        base_compressor=reranker,
+        base_retriever=base_retriever,
+    )
 
 
 # =============================================================================

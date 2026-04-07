@@ -1,8 +1,16 @@
 # DoctorAssistant
 
 
-Doctor Assistant is a **Multi-Agent System (MAS)** built with **LangGraph/LangChain** that provides
-AI-powered medical symptom analysis, preliminary diagnosis and nearby pharmacy search. It orchestrates multiple specialized agents working together.
+Doctor Assistant is a **Multi-Agent System (MAS)** built with **LangGraph/LangChain** that provides AI-powered medical symptom analysis, preliminary diagnosis, and nearby pharmacy search through a conversational web interface.
+
+You interact with it via a **Gradio chat UI** — describe a patient and their symptoms in plain language, and the system orchestrates a pipeline of specialized agents to:
+- Retrieve the patient's medical records (history, medications, allergies) from a PostgreSQL database
+- Analyze the symptoms against cardiovascular and neurological medical knowledge bases using a two-stage RAG pipeline (FAISS retrieval + CrossEncoder reranking)
+- Synthesize all findings into a structured medical assessment with a disclaimer
+
+You can also ask in a separate request to **find nearby pharmacies** for a patient — the system will use the patient's location and Google Maps to return the closest options.
+
+The system keeps track of the last 3 exchanges as conversation context, includes example prompts to get started, and appends a medical disclaimer to every response.
 
 
 ![](/src/doctor_assistant/doctor_assistant_graph.png)
@@ -102,9 +110,13 @@ DoctorAssistant/
 </tr>
 
 <tr>
-<td rowspan="3" align="center"><b>RAG / Vector Search</b></td>
+<td rowspan="4" align="center"><b>RAG / Vector Search</b></td>
 <td>FAISS</td>
-<td>Vector similarity search over medical documents</td>
+<td>First-stage candidate retrieval via vector similarity search</td>
+</tr>
+<tr>
+<td>BAAI/bge-reranker-base (CrossEncoder)</td>
+<td>Second-stage reranking — scores FAISS candidates against the query and returns the most relevant chunks</td>
 </tr>
 <tr>
 <td>HuggingFace Embeddings (all-MiniLM-L6-v2)</td>
