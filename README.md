@@ -64,7 +64,8 @@ DoctorAssistant/
 ├── .env.example                # Environment variables template
 ├── pyproject.toml              # Project configuration
 ├── requirements.txt            # Python dependencies
-├── Makefile                    # Utility commands
+├── Makefile                    # Utility commands (make install, run, test, lint…)
+├── CLAUDE.md                   # Guidance for Claude Code AI assistant
 └── README.md
 ```
 
@@ -211,13 +212,38 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 3. **Edit `.env` and fill in your credentials:**
 
+   **LLM**
+
    | Variable | Description | Where to get it |
    |----------|-------------|-----------------|
    | `OPENAI_API_KEY` | OpenAI API key | [platform.openai.com](https://platform.openai.com/) |
+   | `OPENAI_BASE_URL` | LLM endpoint (default: `https://api.openai.com/v1/`) | Custom proxy or Azure endpoint |
+
+   **Neon PostgreSQL MCP**
+
+   | Variable | Description | Where to get it |
+   |----------|-------------|-----------------|
    | `NEON_SMITHERY_API_KEY` | Smithery API key for Neon MCP | [smithery.ai](https://smithery.ai/) |
-   | `MAP_SMITHERY_API_KEY` | Smithery API key for Google Maps MCP | [smithery.ai](https://smithery.ai/) |
-   | `LANGSMITH_API_KEY` | LangSmith tracing (optional) | [smith.langchain.com](https://smith.langchain.com/) |
+   | `NEON_SMITHERY_MCP_URL` | Neon MCP endpoint URL | Smithery dashboard |
+   | `NEON_PROJECT_ID` | Neon project identifier | [neon.tech](https://neon.tech/) |
+   | `NEON_BRANCH_ID` | Neon branch identifier | [neon.tech](https://neon.tech/) |
+   | `NEON_DATABASE_NAME` | Database name (default: `neondb`) | [neon.tech](https://neon.tech/) |
    | `NEON_DATABASE_URL` | PostgreSQL connection string | [neon.tech](https://neon.tech/) |
+
+   **Google Maps MCP**
+
+   | Variable | Description | Where to get it |
+   |----------|-------------|-----------------|
+   | `MAP_SMITHERY_API_KEY` | Smithery API key for Google Maps MCP | [smithery.ai](https://smithery.ai/) |
+   | `MAP_SMITHERY_MCP_URL` | Google Maps MCP endpoint URL | Smithery dashboard |
+
+   **Observability (optional)**
+
+   | Variable | Description | Where to get it |
+   |----------|-------------|-----------------|
+   | `LANGSMITH_TRACING` | Enable LangSmith tracing (`true`/`false`) | — |
+   | `LANGSMITH_API_KEY` | LangSmith API key | [smith.langchain.com](https://smith.langchain.com/) |
+   | `LANGSMITH_PROJECT` | LangSmith project name | — |
 
 ---
 
@@ -238,19 +264,17 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 2. **Install the package**
    ```bash
-   pip install -e .
-
-   # With development dependencies (testing, linting)
-   pip install -e ".[dev]"
+   make install
    ```
 
-3. **Start the application**
+3. **Build the knowledge bases** *(first time only — generates FAISS vectorstores from the medical PDFs)*
    ```bash
-   # Using the CLI command
-   doctor-assistant
+   make setup-kb
+   ```
 
-   # Or via Python module
-   python -m doctor_assistant.app
+4. **Start the application**
+   ```bash
+   make run
    ```
 
    The app will be available at **http://localhost:7860**
@@ -263,8 +287,8 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 1. **Build and start the application**
    ```bash
-   docker compose build
-   docker compose up
+   make docker-build
+   make docker-up
    ```
 
    The app will be available at **http://localhost:7860**
@@ -273,7 +297,7 @@ Regardless of how you run the app, start by cloning the repository and configuri
 
 2. **Stop the application**
    ```bash
-   docker compose down
+   make docker-down
    ```
 
 > **Note:** Your `.env` file stays on your machine and is never included in the image. Anyone running the project needs to supply their own `.env` based on `.env.example`.

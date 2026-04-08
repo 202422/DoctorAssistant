@@ -5,25 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Install (editable mode with dev deps)
-pip install -e ".[dev]"
-
-# Run the web UI (Gradio at http://localhost:7860)
-doctor-assistant
-python -m doctor_assistant.app
-
-# Run all tests
-pytest
+make install        # pip install -e ".[dev]"
+make run            # start Gradio UI at http://localhost:7860
+make test           # run all tests
+make test-unit      # run unit tests only
+make test-coverage  # run tests with coverage report
+make lint           # ruff + black --check + isort --check
+make format         # black + isort (auto-fix)
+make docker-build   # docker compose build
+make docker-up      # docker compose up
+make docker-down    # docker compose down
+make setup-kb       # build FAISS vectorstores from PDFs
 
 # Run a single test file / specific test
 pytest tests/unit/test_planner.py
 pytest tests/unit/test_planner.py::test_function_name
-
-# Lint / format
-ruff check src/ tests/
-black src/ tests/
-isort src/ tests/
-mypy src/
 ```
 
 ## Architecture
