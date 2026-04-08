@@ -30,7 +30,8 @@ The system keeps track of the last 3 exchanges as conversation context, includes
 
 ## Video Demo
 
-[Watch the demo video](https://drive.google.com/file/d/1xdEF-TDnVvLbRdakQA4jO5fB_Z5fvROG/view?usp=sharing)
+
+[![Watch the demo](assets/demo_thumb.png)](https://drive.google.com/file/d/1xdEF-TDnVvLbRdakQA4jO5fB_Z5fvROG/view)
 
 ## Project Structure
 
